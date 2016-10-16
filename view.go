@@ -472,3 +472,20 @@ func (v *View) Word(x, y int) (string, error) {
 func indexFunc(r rune) bool {
 	return r == ' ' || r == 0
 }
+
+// SetLine changes the contents of an existing line.
+func (v *View) SetLine(y int, text string) error {
+	if y > len(v.lines) {
+		err := errors.New("index out of range")
+		return err
+	}
+
+	v.tainted = true
+	line := make([]cell, 0)
+	for _, r := range text {
+		c := v.parseInput(r)
+		line = append(line, c...)
+	}
+	v.lines[y] = line
+	return nil
+}
