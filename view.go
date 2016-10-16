@@ -489,3 +489,28 @@ func (v *View) SetLine(y int, text string) error {
 	v.lines[y] = line
 	return nil
 }
+
+// SetHighlight toggles highlighting of separate lines, for custom lists
+// or multiple selection in views.
+func (v *View) SetHighlight(y int, on bool) error {
+	if y > len(v.lines) {
+		err := errors.New("index out of range")
+		return err
+	}
+
+	line := v.lines[y]
+	cells := make([]cell, 0)
+	for _, c := range line {
+		if on {
+			c.bgColor = v.SelBgColor
+			c.fgColor = v.SelFgColor
+		} else {
+			c.bgColor = v.BgColor
+			c.fgColor = v.FgColor
+		}
+		cells = append(cells, c)
+	}
+	v.tainted = true
+	v.lines[y] = cells
+	return nil
+}
