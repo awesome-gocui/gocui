@@ -16,9 +16,11 @@ import (
 
 func nextView(g *gocui.Gui, v *gocui.View) error {
 	if v == nil || v.Name() == "side" {
-		return g.SetCurrentView("main")
+		_, err := g.SetCurrentView("main")
+		return err
 	}
-	return g.SetCurrentView("side")
+	_, err := g.SetCurrentView("side")
+	return err
 }
 
 func cursorDown(g *gocui.Gui, v *gocui.View) error {
@@ -62,7 +64,7 @@ func getLine(g *gocui.Gui, v *gocui.View) error {
 			return err
 		}
 		fmt.Fprintln(v, l)
-		if err := g.SetCurrentView("msg"); err != nil {
+		if _, err := g.SetCurrentView("msg"); err != nil {
 			return err
 		}
 	}
@@ -73,7 +75,7 @@ func delMsg(g *gocui.Gui, v *gocui.View) error {
 	if err := g.DeleteView("msg"); err != nil {
 		return err
 	}
-	if err := g.SetCurrentView("side"); err != nil {
+	if _, err := g.SetCurrentView("side"); err != nil {
 		return err
 	}
 	return nil
@@ -162,6 +164,8 @@ func layout(g *gocui.Gui) error {
 			return err
 		}
 		v.Highlight = true
+		v.SelBgColor = gocui.ColorGreen
+		v.SelFgColor = gocui.ColorBlack
 		fmt.Fprintln(v, "Item 1")
 		fmt.Fprintln(v, "Item 2")
 		fmt.Fprintln(v, "Item 3")
@@ -179,7 +183,7 @@ func layout(g *gocui.Gui) error {
 		fmt.Fprintf(v, "%s", b)
 		v.Editable = true
 		v.Wrap = true
-		if err := g.SetCurrentView("main"); err != nil {
+		if _, err := g.SetCurrentView("main"); err != nil {
 			return err
 		}
 	}
@@ -197,8 +201,6 @@ func main() {
 	if err := keybindings(g); err != nil {
 		log.Panicln(err)
 	}
-	g.SelBgColor = gocui.ColorGreen
-	g.SelFgColor = gocui.ColorBlack
 	g.Cursor = true
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
