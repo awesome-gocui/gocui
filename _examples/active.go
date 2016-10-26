@@ -94,15 +94,15 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func main() {
-	g := gocui.NewGui()
-	if err := g.Init(); err != nil {
+	g, err := gocui.NewGui()
+	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
 	g.Highlight = true
 	g.SelFgColor = gocui.ColorGreen
-	g.SetLayout(layout)
+	g.SetManagerFunc(layout)
 
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		log.Panicln(err)

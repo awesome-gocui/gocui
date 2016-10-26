@@ -10,14 +10,6 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-// Handler represents a handler that can be used to update or modify the GUI.
-type Handler func(*Gui) error
-
-// userEvent represents an event triggered by the user.
-type userEvent struct {
-	h Handler
-}
-
 var (
 	// ErrQuit is used to decide if the MainLoop finished successfully.
 	ErrQuit = errors.New("quit")
@@ -33,7 +25,7 @@ type Gui struct {
 	userEvents  chan userEvent
 	views       []*View
 	currentView *View
-	layout      Handler
+	managers    []Manager
 	keybindings []*keybinding
 	maxX, maxY  int
 
@@ -66,23 +58,18 @@ type Gui struct {
 }
 
 // NewGui returns a new Gui object.
-func NewGui() *Gui {
-	return &Gui{}
-}
-
-// Init initializes the library. This function must be called before
-// any other functions.
-func (g *Gui) Init() error {
+func NewGui() (*Gui, error) {
 	if err := termbox.Init(); err != nil {
-		return err
+		return nil, err
 	}
+	g := &Gui{}
 	g.tbEvents = make(chan termbox.Event, 20)
 	g.userEvents = make(chan userEvent, 20)
 	g.maxX, g.maxY = termbox.Size()
 	g.BgColor, g.FgColor = ColorBlack, ColorWhite
 	g.SelBgColor, g.SelFgColor = ColorBlack, ColorWhite
 	g.Editor = DefaultEditor
-	return nil
+	return g, nil
 }
 
 // Close finalizes the library. It should be called after a successful
@@ -222,14 +209,14 @@ func (g *Gui) CurrentView() *View {
 // SetKeybinding creates a new keybinding. If viewname equals to ""
 // (empty string) then the keybinding will apply to all views. key must
 // be a rune or a Key.
-func (g *Gui) SetKeybinding(viewname string, key interface{}, mod Modifier, h KeybindingHandler) error {
+func (g *Gui) SetKeybinding(viewname string, key interface{}, mod Modifier, handler func(*Gui, *View) error) error {
 	var kb *keybinding
 
 	k, ch, err := getKey(key)
 	if err != nil {
 		return err
 	}
-	kb = newKeybinding(viewname, k, ch, mod, h)
+	kb = newKeybinding(viewname, k, ch, mod, handler)
 	g.keybindings = append(g.keybindings, kb)
 	return nil
 }
@@ -274,22 +261,47 @@ func getKey(key interface{}) (Key, rune, error) {
 	}
 }
 
-// Execute executes the given handler. This function can be called safely from
+// userEvent represents an event triggered by the user.
+type userEvent struct {
+	f func(*Gui) error
+}
+
+// Execute executes the given function. This function can be called safely from
 // a goroutine in order to update the GUI. It is important to note that it
 // won't be executed immediately, instead it will be added to the user events
 // queue.
-func (g *Gui) Execute(h Handler) {
-	go func() { g.userEvents <- userEvent{h: h} }()
+func (g *Gui) Execute(f func(*Gui) error) {
+	go func() { g.userEvents <- userEvent{f: f} }()
 }
 
-// SetLayout sets the current layout. A layout is a function that
-// will be called every time the gui is redrawn, it must contain
-// the base views and its initializations.
-func (g *Gui) SetLayout(layout Handler) {
-	g.layout = layout
+// A Manager is in charge of GUI's layout and can be used to build widgets.
+type Manager interface {
+	// Layout is called every time the GUI is redrawn, it must contain the
+	// base views and its initializations.
+	Layout(*Gui) error
+}
+
+// The ManagerFunc type is an adapter to allow the use of ordinary functions as
+// Managers. If f is a function with the appropriate signature, ManagerFunc(f)
+// is an Manager object that calls f.
+type ManagerFunc func(v *Gui) error
+
+// Layout calls f(g)
+func (f ManagerFunc) Layout(g *Gui) error {
+	return f(g)
+}
+
+// SetManager sets the given GUI managers.
+func (g *Gui) SetManager(managers ...Manager) {
+	g.managers = managers
 	g.currentView = nil
 	g.views = nil
 	go func() { g.tbEvents <- termbox.Event{Type: termbox.EventResize} }()
+}
+
+// SetManagerFunc sets the given manager function.
+func (g *Gui) SetManagerFunc(manager func(v *Gui) error) {
+	g.SetManager(ManagerFunc(manager))
 }
 
 // MainLoop runs the main loop until an error is returned. A successful
@@ -320,7 +332,7 @@ func (g *Gui) MainLoop() error {
 				return err
 			}
 		case ev := <-g.userEvents:
-			if err := ev.h(g); err != nil {
+			if err := ev.f(g); err != nil {
 				return err
 			}
 		}
@@ -342,7 +354,7 @@ func (g *Gui) consumeevents() error {
 				return err
 			}
 		case ev := <-g.userEvents:
-			if err := ev.h(g); err != nil {
+			if err := ev.f(g); err != nil {
 				return err
 			}
 		default:
@@ -366,10 +378,6 @@ func (g *Gui) handleEvent(ev *termbox.Event) error {
 
 // flush updates the gui, re-drawing frames and buffers.
 func (g *Gui) flush() error {
-	if g.layout == nil {
-		return errors.New("Null layout")
-	}
-
 	termbox.Clear(termbox.Attribute(g.FgColor), termbox.Attribute(g.BgColor))
 
 	maxX, maxY := termbox.Size()
@@ -381,8 +389,10 @@ func (g *Gui) flush() error {
 	}
 	g.maxX, g.maxY = maxX, maxY
 
-	if err := g.layout(g); err != nil {
-		return err
+	for _, m := range g.managers {
+		if err := m.Layout(g); err != nil {
+			return err
+		}
 	}
 	for _, v := range g.views {
 		if v.Frame {
@@ -395,10 +405,10 @@ func (g *Gui) flush() error {
 				bgColor = g.BgColor
 			}
 
-			if err := g.drawFrame(v, fgColor, bgColor); err != nil {
+			if err := g.drawFrameEdges(v, fgColor, bgColor); err != nil {
 				return err
 			}
-			if err := g.drawCorners(v, fgColor, bgColor); err != nil {
+			if err := g.drawFrameCorners(v, fgColor, bgColor); err != nil {
 				return err
 			}
 			if v.Title != "" {
@@ -411,16 +421,12 @@ func (g *Gui) flush() error {
 			return err
 		}
 	}
-	if err := g.drawIntersections(); err != nil {
-		return err
-	}
 	termbox.Flush()
 	return nil
-
 }
 
-// drawFrame draws the horizontal and vertical edges of a view.
-func (g *Gui) drawFrame(v *View, fgColor, bgColor Attribute) error {
+// drawFrameEdges draws the horizontal and vertical edges of a view.
+func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor Attribute) error {
 	for x := v.x0 + 1; x < v.x1 && x < g.maxX; x++ {
 		if x < 0 {
 			continue
@@ -454,26 +460,18 @@ func (g *Gui) drawFrame(v *View, fgColor, bgColor Attribute) error {
 	return nil
 }
 
-// drawCorners draws the corners of the view.
-func (g *Gui) drawCorners(v *View, fgColor, bgColor Attribute) error {
-	if v.x0 >= 0 && v.y0 >= 0 && v.x0 < g.maxX && v.y0 < g.maxY {
-		if err := g.SetRune(v.x0, v.y0, '┌', fgColor, bgColor); err != nil {
-			return err
-		}
-	}
-	if v.x1 >= 0 && v.y0 >= 0 && v.x1 < g.maxX && v.y0 < g.maxY {
-		if err := g.SetRune(v.x1, v.y0, '┐', fgColor, bgColor); err != nil {
-			return err
-		}
-	}
-	if v.x0 >= 0 && v.y1 >= 0 && v.x0 < g.maxX && v.y1 < g.maxY {
-		if err := g.SetRune(v.x0, v.y1, '└', fgColor, bgColor); err != nil {
-			return err
-		}
-	}
-	if v.x1 >= 0 && v.y1 >= 0 && v.x1 < g.maxX && v.y1 < g.maxY {
-		if err := g.SetRune(v.x1, v.y1, '┘', fgColor, bgColor); err != nil {
-			return err
+// drawFrameCorners draws the corners of the view.
+func (g *Gui) drawFrameCorners(v *View, fgColor, bgColor Attribute) error {
+	corners := []struct {
+		x, y int
+		ch   rune
+	}{{v.x0, v.y0, '┌'}, {v.x1, v.y0, '┐'}, {v.x0, v.y1, '└'}, {v.x1, v.y1, '┘'}}
+
+	for _, c := range corners {
+		if c.x >= 0 && c.y >= 0 && c.x < g.maxX && c.y < g.maxY {
+			if err := g.SetRune(c.x, c.y, c.ch, fgColor, bgColor); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -502,21 +500,21 @@ func (g *Gui) drawTitle(v *View, fgColor, bgColor Attribute) error {
 // draw manages the cursor and calls the draw function of a view.
 func (g *Gui) draw(v *View) error {
 	if g.Cursor {
-		if v := g.currentView; v != nil {
-			vMaxX, vMaxY := v.Size()
-			if v.cx < 0 {
-				v.cx = 0
-			} else if v.cx >= vMaxX {
-				v.cx = vMaxX - 1
+		if curview := g.currentView; curview != nil {
+			vMaxX, vMaxY := curview.Size()
+			if curview.cx < 0 {
+				curview.cx = 0
+			} else if curview.cx >= vMaxX {
+				curview.cx = vMaxX - 1
 			}
-			if v.cy < 0 {
-				v.cy = 0
-			} else if v.cy >= vMaxY {
-				v.cy = vMaxY - 1
+			if curview.cy < 0 {
+				curview.cy = 0
+			} else if curview.cy >= vMaxY {
+				curview.cy = vMaxY - 1
 			}
 
 			gMaxX, gMaxY := g.Size()
-			cx, cy := v.x0+v.cx+1, v.y0+v.cy+1
+			cx, cy := curview.x0+curview.cx+1, curview.y0+curview.cy+1
 			if cx >= 0 && cx < gMaxX && cy >= 0 && cy < gMaxY {
 				termbox.SetCursor(cx, cy)
 			} else {
@@ -532,97 +530,6 @@ func (g *Gui) draw(v *View) error {
 		return err
 	}
 	return nil
-}
-
-// drawIntersections draws the corners of each view, based on the type
-// of the edges that converge at these points.
-func (g *Gui) drawIntersections() error {
-	for _, v := range g.views {
-		if !v.Frame {
-			continue
-		}
-
-		var fgColor, bgColor Attribute
-		if g.Highlight && v == g.currentView {
-			fgColor = g.SelFgColor
-			bgColor = g.SelBgColor
-		} else {
-			fgColor = g.FgColor
-			bgColor = g.BgColor
-		}
-
-		if ch, ok := g.intersectionRune(v.x0, v.y0); ok {
-			if err := g.SetRune(v.x0, v.y0, ch, fgColor, bgColor); err != nil {
-				return err
-			}
-		}
-		if ch, ok := g.intersectionRune(v.x0, v.y1); ok {
-			if err := g.SetRune(v.x0, v.y1, ch, fgColor, bgColor); err != nil {
-				return err
-			}
-		}
-		if ch, ok := g.intersectionRune(v.x1, v.y0); ok {
-			if err := g.SetRune(v.x1, v.y0, ch, fgColor, bgColor); err != nil {
-				return err
-			}
-		}
-		if ch, ok := g.intersectionRune(v.x1, v.y1); ok {
-			if err := g.SetRune(v.x1, v.y1, ch, fgColor, bgColor); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// intersectionRune returns the correct intersection rune at a given
-// point.
-func (g *Gui) intersectionRune(x, y int) (rune, bool) {
-	if x < 0 || y < 0 || x >= g.maxX || y >= g.maxY {
-		return ' ', false
-	}
-
-	chTop, _ := g.Rune(x, y-1)
-	top := verticalRune(chTop)
-	chBottom, _ := g.Rune(x, y+1)
-	bottom := verticalRune(chBottom)
-	chLeft, _ := g.Rune(x-1, y)
-	left := horizontalRune(chLeft)
-	chRight, _ := g.Rune(x+1, y)
-	right := horizontalRune(chRight)
-
-	var ch rune
-	switch {
-	case top && bottom && left && right:
-		ch = '┼'
-	case top && bottom && !left && right:
-		ch = '├'
-	case top && bottom && left && !right:
-		ch = '┤'
-	case !top && bottom && left && right:
-		ch = '┬'
-	case top && !bottom && left && right:
-		ch = '┴'
-	default:
-		return ' ', false
-	}
-	return ch, true
-}
-
-// verticalRune returns if the given character is a vertical rune.
-func verticalRune(ch rune) bool {
-	if ch == '│' || ch == '┼' || ch == '├' || ch == '┤' {
-		return true
-	}
-	return false
-}
-
-// verticalRune returns if the given character is a horizontal rune.
-func horizontalRune(ch rune) bool {
-	if ch == '─' || ch == '┼' || ch == '┬' || ch == '┴' {
-		return true
-	}
-	return false
 }
 
 // onKey manages key-press events. A keybinding handler is called when
@@ -658,11 +565,11 @@ func (g *Gui) onKey(ev *termbox.Event) error {
 // and event.
 func (g *Gui) execKeybindings(v *View, ev *termbox.Event) error {
 	for _, kb := range g.keybindings {
-		if kb.h == nil {
+		if kb.handler == nil {
 			continue
 		}
 		if kb.matchKeypress(Key(ev.Key), ev.Ch, Modifier(ev.Mod)) && kb.matchView(v) {
-			if err := kb.h(g, v); err != nil {
+			if err := kb.handler(g, v); err != nil {
 				return err
 			}
 		}
