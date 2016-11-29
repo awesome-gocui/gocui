@@ -41,6 +41,11 @@ type View struct {
 	// buffer at the cursor position.
 	Editable bool
 
+	// Editor allows to define the editor that manages the edition mode,
+	// including keybindings or cursor behaviour. DefaultEditor is used by
+	// default.
+	Editor Editor
+
 	// Overwrite enables or disables the overwrite mode of the view.
 	Overwrite bool
 
@@ -90,7 +95,7 @@ func (l lineType) String() string {
 }
 
 // newView returns a new View object.
-func newView(name string, x0, y0, x1, y1 int) *View {
+func newView(name string, x0, y0, x1, y1 int, mode OutputMode) *View {
 	v := &View{
 		name:    name,
 		x0:      x0,
@@ -98,8 +103,9 @@ func newView(name string, x0, y0, x1, y1 int) *View {
 		x1:      x1,
 		y1:      y1,
 		Frame:   true,
+		Editor:  DefaultEditor,
 		tainted: true,
-		ei:      newEscapeInterpreter(),
+		ei:      newEscapeInterpreter(mode),
 	}
 	return v
 }
@@ -389,6 +395,8 @@ func (v *View) Clear() {
 	v.tainted = true
 
 	v.lines = nil
+	v.viewLines = nil
+	v.readOffset = 0
 	v.clearRunes()
 }
 

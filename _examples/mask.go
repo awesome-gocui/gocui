@@ -12,17 +12,19 @@ import (
 )
 
 func main() {
-	g, err := gocui.NewGui()
+	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer g.Close()
 
+	g.Cursor = true
+
 	g.SetManagerFunc(layout)
+
 	if err := initKeybindings(g); err != nil {
 		log.Fatalln(err)
 	}
-	g.Cursor = true
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		log.Fatalln(err)

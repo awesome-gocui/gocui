@@ -56,6 +56,10 @@ func layout(g *gocui.Gui) error {
 		v.Title = "v1 (editable)"
 		v.Editable = true
 		v.Wrap = true
+
+		if _, err = setCurrentViewOnTop(g, "v1"); err != nil {
+			return err
+		}
 	}
 
 	if v, err := g.SetView("v2", maxX/2-1, 0, maxX-1, maxY/2-1); err != nil {
@@ -81,10 +85,6 @@ func layout(g *gocui.Gui) error {
 		}
 		v.Title = "v4 (editable)"
 		v.Editable = true
-
-		if _, err = setCurrentViewOnTop(g, "v1"); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -94,14 +94,16 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func main() {
-	g, err := gocui.NewGui()
+	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
 	g.Highlight = true
+	g.Cursor = true
 	g.SelFgColor = gocui.ColorGreen
+
 	g.SetManagerFunc(layout)
 
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {

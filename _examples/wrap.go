@@ -32,13 +32,14 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func main() {
-	g, err := gocui.NewGui()
+	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
 	g.SetManagerFunc(layout)
+
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		log.Panicln(err)
 	}

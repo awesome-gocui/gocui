@@ -42,20 +42,22 @@ func layout(g *gocui.Gui) error {
 }
 
 func main() {
-	g, err := gocui.NewGui()
+	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		log.Panicln(err)
 	}
 
+	g.Cursor = true
+	g.Mouse = true
+
 	g.SetManagerFunc(layout)
+
 	if err := g.SetKeybinding("main", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		log.Panicln(err)
 	}
 	if err := g.SetKeybinding("main", gocui.KeyCtrlI, gocui.ModNone, overwrite); err != nil {
 		log.Panicln(err)
 	}
-	g.Cursor = true
-	g.Mouse = true
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		log.Panicln(err)

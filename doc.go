@@ -7,7 +7,7 @@ Package gocui allows to create console user interfaces.
 
 Create a new GUI:
 
-	g, err := gocui.NewGui()
+	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		// handle error
 	}
@@ -71,7 +71,7 @@ Mouse events are handled like any other keybinding:
 IMPORTANT: Views can only be created, destroyed or updated in three ways: from
 the Layout function within managers, from keybinding callbacks or via
 *Gui.Execute(). The reason for this is that it allows gocui to be
-conccurent-safe. So, if you want to update your GUI from a goroutine, you must
+concurrent-safe. So, if you want to update your GUI from a goroutine, you must
 use *Gui.Execute(). For example:
 
 	g.Execute(func(g *gocui.Gui) error {
@@ -85,7 +85,7 @@ use *Gui.Execute(). For example:
 	})
 
 By default, gocui provides a basic edition mode. This mode can be extended
-and customized creating a new Editor and assigning it to *Gui.Editor:
+and customized creating a new Editor and assigning it to *View.Editor:
 
 	type Editor interface {
 		Edit(v *View, key Key, ch rune, mod Modifier)

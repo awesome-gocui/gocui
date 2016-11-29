@@ -18,6 +18,17 @@ var (
 	ErrUnknownView = errors.New("unknown view")
 )
 
+// OutputMode represents the terminal's output mode (8 or 256 colors).
+type OutputMode termbox.OutputMode
+
+const (
+	// OutputNormal provides 8-colors terminal mode.
+	OutputNormal = OutputMode(termbox.OutputNormal)
+
+	// Output256 provides 256-colors terminal mode.
+	Output256 = OutputMode(termbox.Output256)
+)
+
 // Gui represents the whole User Interface, including the views, layouts
 // and keybindings.
 type Gui struct {
@@ -28,6 +39,7 @@ type Gui struct {
 	managers    []Manager
 	keybindings []*keybinding
 	maxX, maxY  int
+	outputMode  OutputMode
 
 	// BgColor and FgColor allow to configure the background and foreground
 	// colors of the GUI.
@@ -50,25 +62,27 @@ type Gui struct {
 	// If InputEsc is true, when ESC sequence is in the buffer and it doesn't
 	// match any known sequence, ESC means KeyEsc.
 	InputEsc bool
-
-	// Editor allows to define the editor that manages the edition mode,
-	// including keybindings or cursor behaviour. DefaultEditor is used by
-	// default.
-	Editor Editor
 }
 
-// NewGui returns a new Gui object.
-func NewGui() (*Gui, error) {
+// NewGui returns a new Gui object with a given output mode.
+func NewGui(mode OutputMode) (*Gui, error) {
 	if err := termbox.Init(); err != nil {
 		return nil, err
 	}
+
 	g := &Gui{}
+
+	g.outputMode = mode
+	termbox.SetOutputMode(termbox.OutputMode(mode))
+
 	g.tbEvents = make(chan termbox.Event, 20)
 	g.userEvents = make(chan userEvent, 20)
+
 	g.maxX, g.maxY = termbox.Size()
+
 	g.BgColor, g.FgColor = ColorBlack, ColorWhite
 	g.SelBgColor, g.SelFgColor = ColorBlack, ColorWhite
-	g.Editor = DefaultEditor
+
 	return g, nil
 }
 
@@ -126,7 +140,7 @@ func (g *Gui) SetView(name string, x0, y0, x1, y1 int) (*View, error) {
 		return v, nil
 	}
 
-	v := newView(name, x0, y0, x1, y1)
+	v := newView(name, x0, y0, x1, y1, g.outputMode)
 	v.BgColor, v.FgColor = g.BgColor, g.FgColor
 	v.SelBgColor, v.SelFgColor = g.SelBgColor, g.SelFgColor
 	g.views = append(g.views, v)
@@ -143,6 +157,11 @@ func (g *Gui) SetViewOnTop(name string) (*View, error) {
 		}
 	}
 	return nil, ErrUnknownView
+}
+
+// Views returns all the views in the GUI.
+func (g *Gui) Views() []*View {
+	return g.views
 }
 
 // View returns a pointer to the view with the given name, or error
@@ -291,15 +310,19 @@ func (f ManagerFunc) Layout(g *Gui) error {
 	return f(g)
 }
 
-// SetManager sets the given GUI managers.
+// SetManager sets the given GUI managers. It deletes all views and
+// keybindings.
 func (g *Gui) SetManager(managers ...Manager) {
 	g.managers = managers
 	g.currentView = nil
 	g.views = nil
+	g.keybindings = nil
+
 	go func() { g.tbEvents <- termbox.Event{Type: termbox.EventResize} }()
 }
 
-// SetManagerFunc sets the given manager function.
+// SetManagerFunc sets the given manager function. It deletes all views and
+// keybindings.
 func (g *Gui) SetManagerFunc(manager func(v *Gui) error) {
 	g.SetManager(ManagerFunc(manager))
 }
@@ -538,11 +561,15 @@ func (g *Gui) draw(v *View) error {
 func (g *Gui) onKey(ev *termbox.Event) error {
 	switch ev.Type {
 	case termbox.EventKey:
-		if err := g.execKeybindings(g.currentView, ev); err != nil {
+		matched, err := g.execKeybindings(g.currentView, ev)
+		if err != nil {
 			return err
 		}
-		if g.currentView != nil && g.currentView.Editable && g.Editor != nil {
-			g.Editor.Edit(g.currentView, Key(ev.Key), ev.Ch, Modifier(ev.Mod))
+		if matched {
+			break
+		}
+		if g.currentView != nil && g.currentView.Editable && g.currentView.Editor != nil {
+			g.currentView.Editor.Edit(g.currentView, Key(ev.Key), ev.Ch, Modifier(ev.Mod))
 		}
 	case termbox.EventMouse:
 		mx, my := ev.MouseX, ev.MouseY
@@ -553,7 +580,7 @@ func (g *Gui) onKey(ev *termbox.Event) error {
 		if err := v.SetCursor(mx-v.x0-1, my-v.y0-1); err != nil {
 			return err
 		}
-		if err := g.execKeybindings(v, ev); err != nil {
+		if _, err := g.execKeybindings(v, ev); err != nil {
 			return err
 		}
 	}
@@ -562,17 +589,19 @@ func (g *Gui) onKey(ev *termbox.Event) error {
 }
 
 // execKeybindings executes the keybinding handlers that match the passed view
-// and event.
-func (g *Gui) execKeybindings(v *View, ev *termbox.Event) error {
+// and event. The value of matched is true if there is a match and no errors.
+func (g *Gui) execKeybindings(v *View, ev *termbox.Event) (matched bool, err error) {
+	matched = false
 	for _, kb := range g.keybindings {
 		if kb.handler == nil {
 			continue
 		}
 		if kb.matchKeypress(Key(ev.Key), ev.Ch, Modifier(ev.Mod)) && kb.matchView(v) {
 			if err := kb.handler(g, v); err != nil {
-				return err
+				return false, err
 			}
+			matched = true
 		}
 	}
-	return nil
+	return matched, nil
 }
