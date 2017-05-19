@@ -422,6 +422,10 @@ func (g *Gui) flush() error {
 		}
 	}
 	for _, v := range g.views {
+		if !v.visible {
+			continue
+		}
+
 		if v.Frame {
 			var fgColor, bgColor Attribute
 			if g.Highlight && v == g.currentView {

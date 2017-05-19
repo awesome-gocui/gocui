@@ -26,6 +26,7 @@ type View struct {
 
 	tainted   bool       // marks if the viewBuffer must be updated
 	viewLines []viewLine // internal representation of the view's buffer
+	visible   bool       // marks if the view buffer is visible
 
 	ei *escapeInterpreter // used to decode ESC sequences on Write
 
@@ -286,6 +287,10 @@ func (v *View) Rewind() {
 
 // draw re-draws the view's contents.
 func (v *View) draw() error {
+	if !v.visible {
+		return nil
+	}
+
 	maxX, maxY := v.Size()
 
 	if v.Wrap {
@@ -473,6 +478,27 @@ func (v *View) Word(x, y int) (string, error) {
 		nr = nr + x
 	}
 	return string(str[nl:nr]), nil
+}
+
+// Hide view
+func (v *View) Hide() {
+	v.visible = false
+}
+
+// Show view
+func (v *View) Show() {
+	v.visible = true
+}
+
+// ToggleVisible of the view
+func (v *View) ToggleVisible() bool {
+	v.visible = !v.visible
+	return v.visible
+}
+
+// Visible returns the visibility of the view
+func (v *View) Visible() bool {
+	return v.visible
 }
 
 // indexFunc allows to split lines by words taking into account spaces
