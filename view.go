@@ -526,3 +526,45 @@ func (v *View) Visible() bool {
 func indexFunc(r rune) bool {
 	return r == ' ' || r == 0
 }
+
+// SetLine changes the contents of an existing line.
+func (v *View) SetLine(y int, text string) error {
+	if y > len(v.lines) {
+		err := errors.New("index out of range")
+		return err
+	}
+
+	v.tainted = true
+	line := make([]cell, 0)
+	for _, r := range text {
+		c := v.parseInput(r)
+		line = append(line, c...)
+	}
+	v.lines[y] = line
+	return nil
+}
+
+// SetHighlight toggles highlighting of separate lines, for custom lists
+// or multiple selection in views.
+func (v *View) SetHighlight(y int, on bool) error {
+	if y > len(v.lines) {
+		err := errors.New("index out of range")
+		return err
+	}
+
+	line := v.lines[y]
+	cells := make([]cell, 0)
+	for _, c := range line {
+		if on {
+			c.bgColor = v.SelBgColor
+			c.fgColor = v.SelFgColor
+		} else {
+			c.bgColor = v.BgColor
+			c.fgColor = v.FgColor
+		}
+		cells = append(cells, c)
+	}
+	v.tainted = true
+	v.lines[y] = cells
+	return nil
+}
