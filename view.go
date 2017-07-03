@@ -394,7 +394,6 @@ func (v *View) Read(p []byte) (n int, err error) {
 	return offset, io.EOF
 }
 
-// Rewind is deprecated, and left only for backwards compatibility.
 // Sets read and write pos to (0, 0).
 func (v *View) Rewind() {
 	v.SetReadPos(0, 0)
@@ -512,7 +511,9 @@ func (v *View) realPosition(vx, vy int) (x, y int, err error) {
 }
 
 // Clear empties the view's internal buffer.
+// And resets reading and writing offsets.
 func (v *View) Clear() {
+	v.Rewind()
 	v.tainted = true
 	v.lines = nil
 	v.viewLines = nil
