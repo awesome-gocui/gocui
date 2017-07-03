@@ -305,8 +305,27 @@ func (v *View) Write(p []byte) (n int, err error) {
 
 	// Fill with empty cells, if writing outside current view buffer
 	v.makeWriteable(v.wx, v.wy)
+	v.writeRunes(bytes.Runes(p))
 
-	for _, r := range bytes.Runes(p) {
+	return len(p), nil
+}
+
+func (v *View) WriteRunes(p []rune) {
+	v.tainted = true
+
+	// Fill with empty cells, if writing outside current view buffer
+	v.makeWriteable(v.wx, v.wy)
+	v.writeRunes(p)
+}
+
+func (v *View) WriteString(s string) {
+	v.WriteRunes([]rune(s))
+}
+
+// writeRunes copies slice of runes into internal lines buffer.
+// caller must make sure that writing position is accessable.
+func (v *View) writeRunes(p []rune) {
+	for _, r := range p {
 		switch r {
 		case '\n':
 			v.wy++
@@ -327,8 +346,6 @@ func (v *View) Write(p []byte) (n int, err error) {
 			v.wx += len(cells)
 		}
 	}
-
-	return len(p), nil
 }
 
 // parseInput parses char by char the input written to the View. It returns nil
