@@ -406,6 +406,11 @@ func (g *Gui) handleEvent(ev *termbox.Event) error {
 	}
 }
 
+// Flush updates the gui, re-drawing frames and buffers.
+func (g *Gui) Flush() error {
+	return g.flush()
+}
+
 // flush updates the gui, re-drawing frames and buffers.
 func (g *Gui) flush() error {
 	termbox.Clear(termbox.Attribute(g.FgColor), termbox.Attribute(g.BgColor))
