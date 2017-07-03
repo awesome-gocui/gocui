@@ -106,6 +106,7 @@ func newView(name string, x0, y0, x1, y1 int, mode OutputMode) *View {
 		y0:      y0,
 		x1:      x1,
 		y1:      y1,
+		visible: true,
 		Frame:   true,
 		Editor:  DefaultEditor,
 		tainted: true,
