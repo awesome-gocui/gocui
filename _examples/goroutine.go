@@ -13,7 +13,7 @@ import (
 	"github.com/jroimartin/gocui"
 )
 
-const NumGoroutines = 10
+const NumGoroutines = 20
 
 var (
 	done = make(chan struct{})
@@ -49,7 +49,7 @@ func main() {
 }
 
 func layout(g *gocui.Gui) error {
-	if v, err := g.SetView("ctr", 2, 2, 12, 4); err != nil {
+	if v, err := g.SetView("ctr", 2, 2, 22, 2+NumGoroutines+1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -88,7 +88,14 @@ func counter(g *gocui.Gui) {
 				if err != nil {
 					return err
 				}
-				v.Clear()
+				//v.Clear()
+				// Yes, use ctr to make it more chaotic
+				x := (ctr / NumGoroutines) & 1
+				if x != 0 {
+					x = 10
+				}
+				y := ctr % NumGoroutines
+				v.SetWritePos(x, y)
 				fmt.Fprintln(v, n)
 				return nil
 			})
