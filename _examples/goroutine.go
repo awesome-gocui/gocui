@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jroimartin/gocui"
+	"github.com/awesome-gocui/gocui"
 )
 
 const NumGoroutines = 20
@@ -24,7 +24,7 @@ var (
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal)
+	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -41,7 +41,7 @@ func main() {
 		go counter(g)
 	}
 
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := g.MainLoop(); err != nil && !gocui.IsQuit(err) {
 		log.Panicln(err)
 	}
 
@@ -50,10 +50,13 @@ func main() {
 
 func layout(g *gocui.Gui) error {
 	if v, err := g.SetView("ctr", 2, 2, 22, 2+NumGoroutines+1); err != nil {
-		if err != gocui.ErrUnknownView {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
 		fmt.Fprintln(v, "0")
+		if _, err := g.SetCurrentView("ctr"); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -83,7 +86,7 @@ func counter(g *gocui.Gui) {
 			ctr++
 			mu.Unlock()
 
-			g.Execute(func(g *gocui.Gui) error {
+			g.Update(func(g *gocui.Gui) error {
 				v, err := g.View("ctr")
 				if err != nil {
 					return err

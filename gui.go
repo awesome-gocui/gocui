@@ -5,21 +5,28 @@
 package gocui
 
 import (
-	"errors"
+	standardErrors "errors"
+	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
+	"unsafe"
 
-	"github.com/nsf/termbox-go"
-)
+	"github.com/go-errors/errors"
 
-var (
-	// ErrQuit is used to decide if the MainLoop finished successfully.
-	ErrQuit = errors.New("quit")
-
-	// ErrUnknownView allows to assert if a View must be initialized.
-	ErrUnknownView = errors.New("unknown view")
+	"github.com/awesome-gocui/termbox-go"
 )
 
 // OutputMode represents the terminal's output mode (8 or 256 colors).
 type OutputMode termbox.OutputMode
+
+var (
+	// ErrQuit is used to decide if the MainLoop finished successfully.
+	ErrQuit = standardErrors.New("quit")
+
+	// ErrUnknownView allows to assert if a View must be initialized.
+	ErrUnknownView = standardErrors.New("unknown view")
+)
 
 const (
 	// OutputNormal provides 8-colors terminal mode.
@@ -27,6 +34,12 @@ const (
 
 	// Output256 provides 256-colors terminal mode.
 	Output256 = OutputMode(termbox.Output256)
+
+	// OutputGrayScale provides greyscale terminal mode.
+	OutputGrayScale = OutputMode(termbox.OutputGrayscale)
+
+	// Output216 provides greyscale terminal mode.
+	Output216 = OutputMode(termbox.Output216)
 )
 
 // Gui represents the whole User Interface, including the views, layouts
@@ -40,6 +53,7 @@ type Gui struct {
 	keybindings []*keybinding
 	maxX, maxY  int
 	outputMode  OutputMode
+	stop        chan struct{}
 
 	// BgColor and FgColor allow to configure the background and foreground
 	// colors of the GUI.
@@ -66,11 +80,16 @@ type Gui struct {
 	// If ASCII is true then use ASCII instead of unicode to draw the
 	// interface. Using ASCII is more portable.
 	ASCII bool
+
+	// SupportOverlaps is true when we allow for view edges to overlap with other
+	// view edges
+	SupportOverlaps bool
 }
 
 // NewGui returns a new Gui object with a given output mode.
-func NewGui(mode OutputMode) (*Gui, error) {
-	if err := termbox.Init(); err != nil {
+func NewGui(mode OutputMode, supportOverlaps bool) (*Gui, error) {
+	err := termbox.Init()
+	if err != nil {
 		return nil, err
 	}
 
@@ -79,13 +98,26 @@ func NewGui(mode OutputMode) (*Gui, error) {
 	g.outputMode = mode
 	termbox.SetOutputMode(termbox.OutputMode(mode))
 
+	g.stop = make(chan struct{})
+
 	g.tbEvents = make(chan termbox.Event, 20)
 	g.userEvents = make(chan userEvent, 20)
 
-	g.maxX, g.maxY = termbox.Size()
+	if runtime.GOOS != "windows" {
+		g.maxX, g.maxY, err = g.getTermWindowSize()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		g.maxX, g.maxY = termbox.Size()
+	}
 
-	g.BgColor, g.FgColor = ColorBlack, ColorWhite
-	g.SelBgColor, g.SelFgColor = ColorBlack, ColorWhite
+	g.BgColor, g.FgColor = ColorDefault, ColorDefault
+	g.SelBgColor, g.SelFgColor = ColorDefault, ColorDefault
+
+	// SupportOverlaps is true when we allow for view edges to overlap with other
+	// view edges
+	g.SupportOverlaps = supportOverlaps
 
 	return g, nil
 }
@@ -93,6 +125,9 @@ func NewGui(mode OutputMode) (*Gui, error) {
 // Close finalizes the library. It should be called after a successful
 // initialization and when gocui is not needed anymore.
 func (g *Gui) Close() {
+	go func() {
+		g.stop <- struct{}{}
+	}()
 	termbox.Close()
 }
 
@@ -127,8 +162,8 @@ func (g *Gui) Rune(x, y int) (rune, error) {
 // already exists, its dimensions are updated; otherwise, the error
 // ErrUnknownView is returned, which allows to assert if the View must
 // be initialized. It checks if the position is valid.
-func (g *Gui) SetView(name string, x0, y0, x1, y1 int) (*View, error) {
-	if x0 >= x1 || y0 >= y1 {
+func (g *Gui) SetView(name string, x0, y0, x1, y1 int, overlaps byte) (*View, error) {
+	if x0 >= x1 {
 		return nil, errors.New("invalid dimensions")
 	}
 	if name == "" {
@@ -147,8 +182,9 @@ func (g *Gui) SetView(name string, x0, y0, x1, y1 int) (*View, error) {
 	v := newView(name, x0, y0, x1, y1, g.outputMode)
 	v.BgColor, v.FgColor = g.BgColor, g.FgColor
 	v.SelBgColor, v.SelFgColor = g.SelBgColor, g.SelFgColor
+	v.Overlaps = overlaps
 	g.views = append(g.views, v)
-	return v, ErrUnknownView
+	return v, errors.Wrap(ErrUnknownView, 0)
 }
 
 // SetViewOnTop sets the given view on top of the existing ones.
@@ -160,7 +196,19 @@ func (g *Gui) SetViewOnTop(name string) (*View, error) {
 			return v, nil
 		}
 	}
-	return nil, ErrUnknownView
+	return nil, errors.Wrap(ErrUnknownView, 0)
+}
+
+// SetViewOnBottom sets the given view on bottom of the existing ones.
+func (g *Gui) SetViewOnBottom(name string) (*View, error) {
+	for i, v := range g.views {
+		if v.name == name {
+			s := append(g.views[:i], g.views[i+1:]...)
+			g.views = append([]*View{v}, s...)
+			return v, nil
+		}
+	}
+	return nil, errors.Wrap(ErrUnknownView, 0)
 }
 
 // Views returns all the views in the GUI.
@@ -176,13 +224,12 @@ func (g *Gui) View(name string) (*View, error) {
 			return v, nil
 		}
 	}
-	return nil, ErrUnknownView
+	return nil, errors.Wrap(ErrUnknownView, 0)
 }
 
 // ViewByPosition returns a pointer to a view matching the given position, or
 // error ErrUnknownView if a view in that position does not exist.
 func (g *Gui) ViewByPosition(x, y int) (*View, error) {
-
 	// traverse views in reverse order checking top views first
 	for i := len(g.views); i > 0; i-- {
 		v := g.views[i-1]
@@ -190,7 +237,7 @@ func (g *Gui) ViewByPosition(x, y int) (*View, error) {
 			return v, nil
 		}
 	}
-	return nil, ErrUnknownView
+	return nil, errors.Wrap(ErrUnknownView, 0)
 }
 
 // ViewPosition returns the coordinates of the view with the given name, or
@@ -201,7 +248,7 @@ func (g *Gui) ViewPosition(name string) (x0, y0, x1, y1 int, err error) {
 			return v.x0, v.y0, v.x1, v.y1, nil
 		}
 	}
-	return 0, 0, 0, 0, ErrUnknownView
+	return 0, 0, 0, 0, errors.Wrap(ErrUnknownView, 0)
 }
 
 // DeleteView deletes a view by name.
@@ -212,7 +259,7 @@ func (g *Gui) DeleteView(name string) error {
 			return nil
 		}
 	}
-	return ErrUnknownView
+	return errors.Wrap(ErrUnknownView, 0)
 }
 
 // SetCurrentView gives the focus to a given view.
@@ -223,7 +270,7 @@ func (g *Gui) SetCurrentView(name string) (*View, error) {
 			return v, nil
 		}
 	}
-	return nil, ErrUnknownView
+	return nil, errors.Wrap(ErrUnknownView, 0)
 }
 
 // CurrentView returns the currently focused view, or nil if no view
@@ -292,11 +339,12 @@ type userEvent struct {
 	f func(*Gui) error
 }
 
-// Execute executes the given function. This function can be called safely from
-// a goroutine in order to update the GUI. It is important to note that it
-// won't be executed immediately, instead it will be added to the user events
-// queue.
-func (g *Gui) Execute(f func(*Gui) error) {
+// Update executes the passed function. This method can be called safely from a
+// goroutine in order to update the GUI. It is important to note that the
+// passed function won't be executed immediately, instead it will be added to
+// the user events queue. Given that Update spawns a goroutine, the order in
+// which the user events will be handled is not guaranteed.
+func (g *Gui) Update(f func(*Gui) error) {
 	go func() { g.userEvents <- userEvent{f: f} }()
 }
 
@@ -310,7 +358,7 @@ type Manager interface {
 // The ManagerFunc type is an adapter to allow the use of ordinary functions as
 // Managers. If f is a function with the appropriate signature, ManagerFunc(f)
 // is an Manager object that calls f.
-type ManagerFunc func(v *Gui) error
+type ManagerFunc func(*Gui) error
 
 // Layout calls f(g)
 func (f ManagerFunc) Layout(g *Gui) error {
@@ -330,21 +378,31 @@ func (g *Gui) SetManager(managers ...Manager) {
 
 // SetManagerFunc sets the given manager function. It deletes all views and
 // keybindings.
-func (g *Gui) SetManagerFunc(manager func(v *Gui) error) {
+func (g *Gui) SetManagerFunc(manager func(*Gui) error) {
 	g.SetManager(ManagerFunc(manager))
 }
 
 // MainLoop runs the main loop until an error is returned. A successful
 // finish should return ErrQuit.
 func (g *Gui) MainLoop() error {
+	g.loaderTick()
+	if err := g.flush(); err != nil {
+		return err
+	}
+
 	go func() {
 		for {
-			g.tbEvents <- termbox.PollEvent()
+			select {
+			case <-g.stop:
+				return
+			default:
+				g.tbEvents <- termbox.PollEvent()
+			}
 		}
 	}()
 
 	inputMode := termbox.InputAlt
-	if g.InputEsc {
+	if true { // previously g.InputEsc, but didn't seem to work
 		inputMode = termbox.InputEsc
 	}
 	if g.Mouse {
@@ -430,10 +488,9 @@ func (g *Gui) flush() error {
 		}
 	}
 	for _, v := range g.views {
-		if !v.visible {
+		if !v.visible || v.y1 < v.y0 {
 			continue
 		}
-
 		if v.Frame {
 			var fgColor, bgColor, frameColor Attribute
 			if g.Highlight && v == g.currentView {
@@ -454,6 +511,11 @@ func (g *Gui) flush() error {
 			}
 			if v.Title != "" {
 				if err := g.drawTitle(v, fgColor, bgColor); err != nil {
+					return err
+				}
+			}
+			if v.Subtitle != "" {
+				if err := g.drawSubtitle(v, fgColor, bgColor); err != nil {
 					return err
 				}
 			}
@@ -506,9 +568,36 @@ func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor Attribute) error {
 	return nil
 }
 
+func cornerRune(index byte) rune {
+	return []rune{' ', '│', '│', '│', '─', '┘', '┐', '┤', '─', '└', '┌', '├', '├', '┴', '┬', '┼'}[index]
+}
+
+func corner(v *View, directions byte) rune {
+	index := v.Overlaps | directions
+	return cornerRune(index)
+}
+
 // drawFrameCorners draws the corners of the view.
 func (g *Gui) drawFrameCorners(v *View, fgColor, bgColor Attribute) error {
+	if v.y0 == v.y1 {
+		if !g.SupportOverlaps && v.x0 >= 0 && v.x1 >= 0 && v.y0 >= 0 && v.x0 < g.maxX && v.x1 < g.maxX && v.y0 < g.maxY {
+			if err := g.SetRune(v.x0, v.y0, '╶', fgColor, bgColor); err != nil {
+				return err
+			}
+			if err := g.SetRune(v.x1, v.y0, '╴', fgColor, bgColor); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	runeTL, runeTR, runeBL, runeBR := '┌', '┐', '└', '┘'
+	if g.SupportOverlaps {
+		runeTL = corner(v, BOTTOM|RIGHT)
+		runeTR = corner(v, BOTTOM|LEFT)
+		runeBL = corner(v, TOP|RIGHT)
+		runeBR = corner(v, TOP|LEFT)
+	}
 	if g.ASCII {
 		runeTL, runeTR, runeBL, runeBR = '+', '+', '+', '+'
 	}
@@ -539,6 +628,28 @@ func (g *Gui) drawTitle(v *View, fgColor, bgColor Attribute) error {
 		if x < 0 {
 			continue
 		} else if x > v.x1-2 || x >= g.maxX {
+			break
+		}
+		if err := g.SetRune(x, v.y0, ch, fgColor, bgColor); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// drawSubtitle draws the subtitle of the view.
+func (g *Gui) drawSubtitle(v *View, fgColor, bgColor Attribute) error {
+	if v.y0 < 0 || v.y0 >= g.maxY {
+		return nil
+	}
+
+	start := v.x1 - 5 - len(v.Subtitle)
+	if start < v.x0 {
+		return nil
+	}
+	for i, ch := range v.Subtitle {
+		x := start + i
+		if x >= v.x1 {
 			break
 		}
 		if err := g.SetRune(x, v.y0, ch, fgColor, bgColor); err != nil {
@@ -619,17 +730,84 @@ func (g *Gui) onKey(ev *termbox.Event) error {
 // execKeybindings executes the keybinding handlers that match the passed view
 // and event. The value of matched is true if there is a match and no errors.
 func (g *Gui) execKeybindings(v *View, ev *termbox.Event) (matched bool, err error) {
-	matched = false
+	var globalKb *keybinding
 	for _, kb := range g.keybindings {
 		if kb.handler == nil {
 			continue
 		}
-		if kb.matchKeypress(Key(ev.Key), ev.Ch, Modifier(ev.Mod)) && kb.matchView(v) {
-			if err := kb.handler(g, v); err != nil {
-				return false, err
-			}
-			matched = true
+		if !kb.matchKeypress(Key(ev.Key), ev.Ch, Modifier(ev.Mod)) {
+			continue
+		}
+		if kb.matchView(v) {
+			return g.execKeybinding(v, kb)
+		}
+		if kb.viewName == "" && ((v != nil && !v.Editable) || kb.ch == 0) {
+			globalKb = kb
 		}
 	}
-	return matched, nil
+	if globalKb != nil {
+		return g.execKeybinding(v, globalKb)
+	}
+	return false, nil
+}
+
+// execKeybinding executes a given keybinding
+func (g *Gui) execKeybinding(v *View, kb *keybinding) (bool, error) {
+	if err := kb.handler(g, v); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// IsUnknownView return true if the contents of an error is "unknown view"
+func IsUnknownView(err error) bool {
+	return err.Error() == ErrUnknownView.Error()
+}
+
+// IsQuit return true if the contents of an error is "quit"
+func IsQuit(err error) bool {
+	return err.Error() == ErrQuit.Error()
+}
+
+// getTermWindowSize is get terminal window size on linux or unix.
+// When gocui run inside the docker contaienr need to check and get the window size.
+func (g *Gui) getTermWindowSize() (int, int, error) {
+	var sz struct {
+		rows uint16
+		cols uint16
+	}
+
+	var termw, termh int
+
+	out, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer out.Close()
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, syscall.SIGWINCH, syscall.SIGINT)
+
+	for {
+		_, _, _ = syscall.Syscall(syscall.SYS_IOCTL,
+			out.Fd(), uintptr(syscall.TIOCGWINSZ), uintptr(unsafe.Pointer(&sz)))
+
+		// check terminal window size
+		termw, termh = int(sz.cols), int(sz.rows)
+		if termw > 0 && termh > 0 {
+			return termw, termh, nil
+		}
+
+		select {
+		case signal := <-signalCh:
+			switch signal {
+			// when the terminal window size is changed
+			case syscall.SIGWINCH:
+				continue
+			// ctrl + c to cancel
+			case syscall.SIGINT:
+				return 0, 0, errors.New("stop to get term window size")
+			}
+		}
+	}
 }

@@ -1,6 +1,10 @@
 # GOCUI - Go Console User Interface
-
-[![GoDoc](https://godoc.org/github.com/jroimartin/gocui?status.svg)](https://godoc.org/github.com/jroimartin/gocui)
+[![CircleCI](https://circleci.com/gh/awesome-gocui/gocui/tree/master.svg?style=svg)](https://circleci.com/gh/awesome-gocui/gocui/tree/master)
+[![CodeCov](https://codecov.io/gh/awesome-gocui/gocui/branch/master/graph/badge.svg)](https://codecov.io/gh/awesome-gocui/gocui)
+[![Go Report Card](https://goreportcard.com/badge/github.com/awesome-gocui/gocui)](https://goreportcard.com/report/github.com/awesome-gocui/gocui)
+[![GolangCI](https://golangci.com/badges/github.com/awesome-gocui/gocui.svg)](https://golangci.com/badges/github.com/awesome-gocui/gocui.svg)
+[![GoDoc](https://godoc.org/github.com/awesome-gocui/gocui?status.svg)](https://godoc.org/github.com/awesome-gocui/gocui)
+![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/awesome-gocui/gocui.svg)
 
 Minimalist Go package aimed at creating Console User Interfaces.
 
@@ -21,7 +25,7 @@ Minimalist Go package aimed at creating Console User Interfaces.
 Execute:
 
 ```
-$ go get github.com/jroimartin/gocui
+$ go get github.com/awesome-gocui/gocui
 ```
 
 ## Documentation
@@ -29,13 +33,14 @@ $ go get github.com/jroimartin/gocui
 Execute:
 
 ```
-$ go doc github.com/jroimartin/gocui
+$ go doc github.com/awesome-gocui/gocui
 ```
 
-Or visit [godoc.org](https://godoc.org/github.com/jroimartin/gocui) to read it
+Or visit [godoc.org](https://godoc.org/github.com/awesome-gocui/gocui) to read it
 online.
 
 ## Example
+See the [_example](./_example/) folder for more examples
 
 ```go
 package main
@@ -44,7 +49,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jroimartin/gocui"
+	"github.com/awesome-gocui/gocui"
 )
 
 func main() {
@@ -60,7 +65,7 @@ func main() {
 		log.Panicln(err)
 	}
 
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := g.MainLoop(); err != nil && !gocui.IsQuit(err) {
 		log.Panicln(err)
 	}
 }
@@ -68,10 +73,13 @@ func main() {
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	if v, err := g.SetView("hello", maxX/2-7, maxY/2, maxX/2+7, maxY/2+2); err != nil {
-		if err != gocui.ErrUnknownView {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
 		fmt.Fprintln(v, "Hello world!")
+		if _, err := g.SetCurrentView("hello"); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -91,10 +99,20 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 
 ## Projects using gocui
 
-* [Komanda CLI](https://github.com/mephux/komanda-cli): IRC Client For Developers.
-* [Vuls](https://github.com/future-architect/vuls): Agentless vulnerability scanner for Linux/FreeBSD.
+* [komanda-cli](https://github.com/mephux/komanda-cli): IRC Client For Developers.
+* [vuls](https://github.com/future-architect/vuls): Agentless vulnerability scanner for Linux/FreeBSD.
 * [wuzz](https://github.com/asciimoo/wuzz): Interactive cli tool for HTTP inspection.
 * [httplab](https://github.com/gchaincl/httplab): Interactive web server.
 * [domainr](https://github.com/MichaelThessel/domainr): Tool that checks the availability of domains based on keywords.
+* [gotime](https://github.com/nanohard/gotime): Time tracker for projects and tasks.
+* [claws](https://github.com/thehowl/claws): Interactive command line client for testing websockets.
+* [terminews](http://github.com/antavelos/terminews): Terminal based RSS reader.
+* [diagram](https://github.com/esimov/diagram): Tool to convert ascii arts into hand drawn diagrams.
+* [pody](https://github.com/JulienBreux/pody): CLI app to manage Pods in a Kubernetes cluster.
+* [kubexp](https://github.com/alitari/kubexp): Kubernetes client.
+* [kcli](https://github.com/cswank/kcli): Tool for inspecting kafka topics/partitions/messages.
+* [fac](https://github.com/mkchoi212/fac): git merge conflict resolver
+* [jsonui](https://github.com/gulyasm/jsonui): Interactive JSON explorer for your terminal.
+* [cointop](https://github.com/miguelmota/cointop): Interactive terminal based UI application for tracking cryptocurrencies.
 
 Note: if your project is not listed here, let us know! :)

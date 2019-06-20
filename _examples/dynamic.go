@@ -9,7 +9,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/jroimartin/gocui"
+	"github.com/awesome-gocui/gocui"
 )
 
 const delta = 1
@@ -21,7 +21,7 @@ var (
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal)
+	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -39,16 +39,16 @@ func main() {
 		log.Panicln(err)
 	}
 
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := g.MainLoop(); err != nil && !gocui.IsQuit(err) {
 		log.Panicln(err)
 	}
 }
 
 func layout(g *gocui.Gui) error {
 	maxX, _ := g.Size()
-	v, err := g.SetView("help", maxX-25, 0, maxX-1, 8)
+	v, err := g.SetView("help", maxX-25, 0, maxX-1, 9, 0)
 	if err != nil {
-		if err != gocui.ErrUnknownView {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
 		fmt.Fprintln(v, "KEYBINDINGS")
@@ -57,13 +57,17 @@ func layout(g *gocui.Gui) error {
 		fmt.Fprintln(v, "← ↑ → ↓: Move View")
 		fmt.Fprintln(v, "Backspace: Delete View")
 		fmt.Fprintln(v, "t: Set view on top")
+		fmt.Fprintln(v, "b: Set view on bottom")
 		fmt.Fprintln(v, "^C: Exit")
 	}
 	return nil
 }
 
 func initKeybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone,
+		func(g *gocui.Gui, v *gocui.View) error {
+			return gocui.ErrQuit
+		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", gocui.KeySpace, gocui.ModNone,
@@ -108,22 +112,29 @@ func initKeybindings(g *gocui.Gui) error {
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", 't', gocui.ModNone, ontop); err != nil {
+	if err := g.SetKeybinding("", 't', gocui.ModNone,
+		func(g *gocui.Gui, v *gocui.View) error {
+			_, err := g.SetViewOnTop(views[curView])
+			return err
+		}); err != nil {
+		return err
+	}
+	if err := g.SetKeybinding("", 'b', gocui.ModNone,
+		func(g *gocui.Gui, v *gocui.View) error {
+			_, err := g.SetViewOnBottom(views[curView])
+			return err
+		}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.ErrQuit
-}
-
 func newView(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	name := fmt.Sprintf("v%v", idxView)
-	v, err := g.SetView(name, maxX/2-5, maxY/2-5, maxX/2+5, maxY/2+5)
+	v, err := g.SetView(name, maxX/2-5, maxY/2-5, maxX/2+5, maxY/2+5, 0)
 	if err != nil {
-		if err != gocui.ErrUnknownView {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
 		v.Wrap = true
@@ -172,13 +183,8 @@ func moveView(g *gocui.Gui, v *gocui.View, dx, dy int) error {
 	if err != nil {
 		return err
 	}
-	if _, err := g.SetView(name, x0+dx, y0+dy, x1+dx, y1+dy); err != nil {
+	if _, err := g.SetView(name, x0+dx, y0+dy, x1+dx, y1+dy, 0); err != nil {
 		return err
 	}
 	return nil
-}
-
-func ontop(g *gocui.Gui, v *gocui.View) error {
-	_, err := g.SetViewOnTop(views[curView])
-	return err
 }
