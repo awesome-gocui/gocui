@@ -445,10 +445,18 @@ func (v *View) Read(p []byte) (n int, err error) {
 	return offset, io.EOF
 }
 
-// Sets read and write pos to (0, 0).
+// Rewind sets read and write pos to (0, 0).
 func (v *View) Rewind() {
-	v.SetReadPos(0, 0)
-	v.SetWritePos(0, 0)
+	if err := v.SetReadPos(0, 0); err != nil {
+		// SetReadPos returns error only if x and y are negative
+		// we are passing 0, 0, thus no error should occur.
+		panic(err)
+	}
+	if err := v.SetWritePos(0, 0); err != nil {
+		// SetWritePos returns error only if x and y are negative
+		// we are passing 0, 0, thus no error should occur.
+		panic(err)
+	}
 }
 
 // draw re-draws the view's contents.
