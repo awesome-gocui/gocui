@@ -92,6 +92,7 @@ func counter(g *gocui.Gui) {
 					return err
 				}
 				// use ctr to make it more chaotic
+				// "pseudo-randomly" print in one of two columns (x = 0, and x = 10)
 				x := (ctr / NumGoroutines) & 1
 				if x != 0 {
 					x = 10
