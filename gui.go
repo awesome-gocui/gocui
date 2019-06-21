@@ -488,7 +488,7 @@ func (g *Gui) flush() error {
 		}
 	}
 	for _, v := range g.views {
-		if !v.visible || v.y1 < v.y0 {
+		if !v.Visible || v.y1 < v.y0 {
 			continue
 		}
 		if v.Frame {

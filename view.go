@@ -45,9 +45,11 @@ type View struct {
 
 	tainted   bool       // true if the viewLines must be updated
 	viewLines []viewLine // internal representation of the view's buffer
-	visible   bool       // marks if the view buffer is visible
 
 	ei *escapeInterpreter // used to decode ESC sequences on Write
+
+	// Visible specifies whether the view is visible.
+	Visible   bool
 
 	// BgColor and FgColor allow to configure the background and foreground
 	// colors of the View.
@@ -131,7 +133,7 @@ func newView(name string, x0, y0, x1, y1 int, mode OutputMode) *View {
 		y0:      y0,
 		x1:      x1,
 		y1:      y1,
-		visible: true,
+		Visible: true,
 		Frame:   true,
 		Editor:  DefaultEditor,
 		tainted: true,
@@ -461,7 +463,7 @@ func (v *View) Rewind() {
 
 // draw re-draws the view's contents.
 func (v *View) draw() error {
-	if !v.visible {
+	if !v.Visible {
 		return nil
 	}
 
@@ -678,27 +680,6 @@ func (v *View) Word(x, y int) (string, error) {
 		nr = nr + x
 	}
 	return string(str[nl:nr]), nil
-}
-
-// Hide view
-func (v *View) Hide() {
-	v.visible = false
-}
-
-// Show view
-func (v *View) Show() {
-	v.visible = true
-}
-
-// ToggleVisible of the view
-func (v *View) ToggleVisible() bool {
-	v.visible = !v.visible
-	return v.visible
-}
-
-// Visible returns the visibility of the view
-func (v *View) Visible() bool {
-	return v.visible
 }
 
 // indexFunc allows to split lines by words taking into account spaces
