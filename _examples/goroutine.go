@@ -49,11 +49,11 @@ func main() {
 }
 
 func layout(g *gocui.Gui) error {
-	if v, err := g.SetView("ctr", 2, 2, 22, 2+NumGoroutines+1); err != nil {
+	if v, err := g.SetView("ctr", 2, 2, 22, 2+NumGoroutines+1, 0); err != nil {
 		if !gocui.IsUnknownView(err) {
 			return err
 		}
-		fmt.Fprintln(v, "0")
+		v.Clear()
 		if _, err := g.SetCurrentView("ctr"); err != nil {
 			return err
 		}
@@ -91,8 +91,7 @@ func counter(g *gocui.Gui) {
 				if err != nil {
 					return err
 				}
-				//v.Clear()
-				// Yes, use ctr to make it more chaotic
+				// use ctr to make it more chaotic
 				x := (ctr / NumGoroutines) & 1
 				if x != 0 {
 					x = 10
