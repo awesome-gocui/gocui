@@ -528,7 +528,15 @@ func (v *View) draw() error {
 			if err := v.setRune(x, y, c.chr, fgColor, bgColor); err != nil {
 				return err
 			}
-			x += runewidth.RuneWidth(c.chr)
+
+			if c.chr != 0 {
+				// If it is a rune, add rune width
+				x += runewidth.RuneWidth(c.chr)
+			} else {
+				// If it is NULL rune, add 1 to be able to use SetWritePos
+				// (runewidth.RuneWidth of space is 1)
+				x++
+			}
 		}
 		y++
 	}
