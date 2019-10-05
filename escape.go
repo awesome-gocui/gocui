@@ -5,8 +5,9 @@
 package gocui
 
 import (
-	"github.com/go-errors/errors"
 	"strconv"
+
+	"github.com/go-errors/errors"
 )
 
 type escapeInterpreter struct {
@@ -14,7 +15,6 @@ type escapeInterpreter struct {
 	curch                  rune
 	csiParam               []string
 	curFgColor, curBgColor Attribute
-	mode                   OutputMode
 }
 
 type escapeState int
@@ -54,12 +54,11 @@ func (ei *escapeInterpreter) runes() []rune {
 
 // newEscapeInterpreter returns an escapeInterpreter that will be able to parse
 // terminal escape sequences.
-func newEscapeInterpreter(mode OutputMode) *escapeInterpreter {
+func newEscapeInterpreter() *escapeInterpreter {
 	ei := &escapeInterpreter{
 		state:      stateNone,
 		curFgColor: ColorDefault,
 		curBgColor: ColorDefault,
-		mode:       mode,
 	}
 	return ei
 }

@@ -135,7 +135,7 @@ func (l lineType) String() string {
 }
 
 // newView returns a new View object.
-func newView(name string, x0, y0, x1, y1 int, mode OutputMode) *View {
+func newView(name string, x0, y0, x1, y1 int) *View {
 	v := &View{
 		name:    name,
 		x0:      x0,
@@ -146,7 +146,7 @@ func newView(name string, x0, y0, x1, y1 int, mode OutputMode) *View {
 		Frame:   true,
 		Editor:  DefaultEditor,
 		tainted: true,
-		ei:      newEscapeInterpreter(mode),
+		ei:      newEscapeInterpreter(),
 	}
 	return v
 }

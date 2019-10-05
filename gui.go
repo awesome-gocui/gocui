@@ -8,9 +8,9 @@ import (
 	standardErrors "errors"
 	"runtime"
 
+	termbox "github.com/awesome-gocui/termbox-go"
+	"github.com/gdamore/tcell"
 	"github.com/go-errors/errors"
-
-	"github.com/awesome-gocui/termbox-go"
 )
 
 // OutputMode represents the terminal's output mode (8 or 256 colors).
@@ -48,7 +48,6 @@ type Gui struct {
 	managers    []Manager
 	keybindings []*keybinding
 	maxX, maxY  int
-	outputMode  OutputMode
 	stop        chan struct{}
 
 	// BgColor and FgColor allow to configure the background and foreground
@@ -83,16 +82,24 @@ type Gui struct {
 }
 
 // NewGui returns a new Gui object with a given output mode.
-func NewGui(mode OutputMode, supportOverlaps bool) (*Gui, error) {
-	err := termbox.Init()
+func NewGui(supportOverlaps bool) (*Gui, error) {
+	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
+	screen, err := tcell.NewScreen()
 	if err != nil {
 		return nil, err
 	}
 
-	g := &Gui{}
+	err = screen.Init()
+	if err != nil {
+		return nil, err
+	}
 
-	g.outputMode = mode
-	termbox.SetOutputMode(termbox.OutputMode(mode))
+	// NOTE: We might not need this
+	screen.SetStyle(tcell.StyleDefault)
+
+	screen.Clear()
+
+	g := &Gui{}
 
 	g.stop = make(chan struct{})
 
@@ -175,7 +182,7 @@ func (g *Gui) SetView(name string, x0, y0, x1, y1 int, overlaps byte) (*View, er
 		return v, nil
 	}
 
-	v := newView(name, x0, y0, x1, y1, g.outputMode)
+	v := newView(name, x0, y0, x1, y1)
 	v.BgColor, v.FgColor = g.BgColor, g.FgColor
 	v.SelBgColor, v.SelFgColor = g.SelBgColor, g.SelFgColor
 	v.Overlaps = overlaps
@@ -369,7 +376,9 @@ func (g *Gui) SetManager(managers ...Manager) {
 	g.views = nil
 	g.keybindings = nil
 
-	go func() { g.tbEvents <- termbox.Event{Type: termbox.EventResize} }()
+	go func() {
+		g.tbEvents <- termbox.Event{Type: termbox.EventResize}
+	}()
 }
 
 // SetManagerFunc sets the given manager function. It deletes all views and

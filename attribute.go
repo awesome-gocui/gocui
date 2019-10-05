@@ -4,29 +4,31 @@
 
 package gocui
 
-import "github.com/awesome-gocui/termbox-go"
+import (
+	"github.com/gdamore/tcell"
+)
 
 // Attribute represents a terminal attribute, like color, font style, etc. They
 // can be combined using bitwise OR (|). Note that it is not possible to
 // combine multiple color attributes.
-type Attribute termbox.Attribute
+type Attribute tcell.Color
 
 // Color attributes.
 const (
-	ColorDefault Attribute = Attribute(termbox.ColorDefault)
-	ColorBlack             = Attribute(termbox.ColorBlack)
-	ColorRed               = Attribute(termbox.ColorRed)
-	ColorGreen             = Attribute(termbox.ColorGreen)
-	ColorYellow            = Attribute(termbox.ColorYellow)
-	ColorBlue              = Attribute(termbox.ColorBlue)
-	ColorMagenta           = Attribute(termbox.ColorMagenta)
-	ColorCyan              = Attribute(termbox.ColorCyan)
-	ColorWhite             = Attribute(termbox.ColorWhite)
+	ColorDefault Attribute = Attribute(tcell.ColorDefault)
+	ColorBlack             = Attribute(tcell.ColorBlack)
+	ColorRed               = Attribute(tcell.ColorRed)
+	ColorGreen             = Attribute(tcell.ColorGreen)
+	ColorYellow            = Attribute(tcell.ColorYellow)
+	ColorBlue              = Attribute(tcell.ColorBlue)
+	ColorMagenta           = Attribute(tcell.ColorDarkMagenta)
+	ColorCyan              = Attribute(tcell.ColorDarkCyan)
+	ColorWhite             = Attribute(tcell.ColorWhite)
 )
 
 // Text style attributes.
 const (
-	AttrBold      Attribute = Attribute(termbox.AttrBold)
-	AttrUnderline           = Attribute(termbox.AttrUnderline)
-	AttrReverse             = Attribute(termbox.AttrReverse)
+	AttrBold      Attribute = Attribute(tcell.AttrBold)
+	AttrUnderline           = Attribute(tcell.AttrUnderline)
+	AttrReverse             = Attribute(tcell.AttrReverse)
 )
