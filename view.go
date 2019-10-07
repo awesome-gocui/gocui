@@ -11,9 +11,8 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	"github.com/gdamore/tcell"
 	"github.com/go-errors/errors"
-
-	"github.com/awesome-gocui/termbox-go"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -62,11 +61,11 @@ type View struct {
 
 	// BgColor and FgColor allow to configure the background and foreground
 	// colors of the View.
-	BgColor, FgColor Attribute
+	BgColor, FgColor tcell.Color
 
 	// SelBgColor and SelFgColor are used to configure the background and
 	// foreground colors of the selected line, when it is highlighted.
-	SelBgColor, SelFgColor Attribute
+	SelBgColor, SelFgColor tcell.Color
 
 	// If Editable is true, keystrokes will be added to the view's internal
 	// buffer at the cursor position.
@@ -111,6 +110,9 @@ type View struct {
 
 	// If HasLoader is true, the message will be appended with a spinning loader animation
 	HasLoader bool
+
+	// Screen holds a refrence to the screen object in gui, a lot of ui actions require this to work
+	screen tcell.Screen
 }
 
 type viewLine struct {
@@ -120,7 +122,7 @@ type viewLine struct {
 
 type cell struct {
 	chr              rune
-	bgColor, fgColor Attribute
+	bgColor, fgColor tcell.Color
 }
 
 type lineType []cell
@@ -135,7 +137,7 @@ func (l lineType) String() string {
 }
 
 // newView returns a new View object.
-func newView(name string, x0, y0, x1, y1 int) *View {
+func newView(screen tcell.Screen, name string, x0, y0, x1, y1 int) *View {
 	v := &View{
 		name:    name,
 		x0:      x0,
@@ -147,6 +149,7 @@ func newView(name string, x0, y0, x1, y1 int) *View {
 		Editor:  DefaultEditor,
 		tainted: true,
 		ei:      newEscapeInterpreter(),
+		screen:  screen,
 	}
 	return v
 }
@@ -169,7 +172,7 @@ func (v *View) Name() string {
 // setRune sets a rune at the given point relative to the view. It applies the
 // specified colors, taking into account if the cell must be highlighted. Also,
 // it checks if the position is valid.
-func (v *View) setRune(x, y int, ch rune, fgColor, bgColor Attribute) error {
+func (v *View) setRune(x, y int, ch rune, fgColor, bgColor tcell.Color) error {
 	maxX, maxY := v.Size()
 	if x < 0 || x >= maxX || y < 0 || y >= maxY {
 		return ErrInvalidPoint
@@ -193,8 +196,6 @@ func (v *View) setRune(x, y int, ch rune, fgColor, bgColor Attribute) error {
 		fgColor = v.FgColor
 		bgColor = v.BgColor
 		ch = v.Mask
-	} else if v.Highlight && ry == rcy {
-		fgColor = fgColor | AttrBold
 	}
 
 	// Don't display NUL characters
@@ -202,8 +203,8 @@ func (v *View) setRune(x, y int, ch rune, fgColor, bgColor Attribute) error {
 		ch = ' '
 	}
 
-	termbox.SetCell(v.x0+x+1, v.y0+y+1, ch,
-		termbox.Attribute(fgColor), termbox.Attribute(bgColor))
+	style := tcell.StyleDefault.Foreground(fgColor).Background(bgColor).Bold(v.Highlight && ry == rcy)
+	v.screen.SetCell(v.x0+x+1, v.y0+y+1, style, ch)
 
 	return nil
 }
@@ -599,8 +600,7 @@ func (v *View) clearRunes() {
 	maxX, maxY := v.Size()
 	for x := 0; x < maxX; x++ {
 		for y := 0; y < maxY; y++ {
-			termbox.SetCell(v.x0+x+1, v.y0+y+1, ' ',
-				termbox.Attribute(v.FgColor), termbox.Attribute(v.BgColor))
+			v.screen.SetCell(v.x0+x+1, v.y0+y+1, tcell.StyleDefault.Foreground(v.FgColor).Background(v.BgColor), ' ')
 		}
 	}
 }
@@ -635,6 +635,7 @@ func (v *View) ViewBufferLines() []string {
 	return lines
 }
 
+// LinesHeight returns the number of lines in the view
 func (v *View) LinesHeight() int {
 	return len(v.lines)
 }

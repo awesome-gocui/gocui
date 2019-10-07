@@ -8,27 +8,22 @@ import (
 	"github.com/gdamore/tcell"
 )
 
-// Attribute represents a terminal attribute, like color, font style, etc. They
-// can be combined using bitwise OR (|). Note that it is not possible to
-// combine multiple color attributes.
-type Attribute tcell.Color
-
 // Color attributes.
 const (
-	ColorDefault Attribute = Attribute(tcell.ColorDefault)
-	ColorBlack             = Attribute(tcell.ColorBlack)
-	ColorRed               = Attribute(tcell.ColorRed)
-	ColorGreen             = Attribute(tcell.ColorGreen)
-	ColorYellow            = Attribute(tcell.ColorYellow)
-	ColorBlue              = Attribute(tcell.ColorBlue)
-	ColorMagenta           = Attribute(tcell.ColorDarkMagenta)
-	ColorCyan              = Attribute(tcell.ColorDarkCyan)
-	ColorWhite             = Attribute(tcell.ColorWhite)
+	ColorDefault tcell.Color = tcell.ColorDefault
+	ColorBlack               = tcell.ColorBlack
+	ColorRed                 = tcell.ColorRed
+	ColorGreen               = tcell.ColorGreen
+	ColorYellow              = tcell.ColorYellow
+	ColorBlue                = tcell.ColorBlue
+	ColorMagenta             = tcell.ColorDarkMagenta
+	ColorCyan                = tcell.ColorDarkCyan
+	ColorWhite               = tcell.ColorWhite
 )
 
 // Text style attributes.
 const (
-	AttrBold      Attribute = Attribute(tcell.AttrBold)
-	AttrUnderline           = Attribute(tcell.AttrUnderline)
-	AttrReverse             = Attribute(tcell.AttrReverse)
+	AttrBold      tcell.AttrMask = tcell.AttrBold
+	AttrUnderline                = tcell.AttrUnderline
+	AttrReverse                  = tcell.AttrReverse
 )

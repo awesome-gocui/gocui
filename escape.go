@@ -7,6 +7,7 @@ package gocui
 import (
 	"strconv"
 
+	"github.com/gdamore/tcell"
 	"github.com/go-errors/errors"
 )
 
@@ -14,7 +15,7 @@ type escapeInterpreter struct {
 	state                  escapeState
 	curch                  rune
 	csiParam               []string
-	curFgColor, curBgColor Attribute
+	curFgColor, curBgColor tcell.Color
 }
 
 type escapeState int
@@ -118,17 +119,6 @@ func (ei *escapeInterpreter) parseOne(ch rune) (isEscape bool, err error) {
 			ei.csiParam = append(ei.csiParam, "")
 			return true, nil
 		case ch == 'm':
-			var err error
-			switch ei.mode {
-			case OutputNormal:
-				err = ei.outputNormal()
-			case Output256:
-				err = ei.output256()
-			}
-			if err != nil {
-				return false, errCSIParseError
-			}
-
 			ei.state = stateNone
 			ei.csiParam = nil
 			return true, nil
@@ -150,19 +140,19 @@ func (ei *escapeInterpreter) outputNormal() error {
 
 		switch {
 		case p >= 30 && p <= 37:
-			ei.curFgColor = Attribute(p - 30 + 1)
+			ei.curFgColor = tcell.Color(p - 30 + 1)
 		case p == 39:
 			ei.curFgColor = ColorDefault
 		case p >= 40 && p <= 47:
-			ei.curBgColor = Attribute(p - 40 + 1)
+			ei.curBgColor = tcell.Color(p - 40 + 1)
 		case p == 49:
 			ei.curBgColor = ColorDefault
 		case p == 1:
-			ei.curFgColor |= AttrBold
+			ei.curFgColor |= tcell.Color(tcell.AttrBold)
 		case p == 4:
-			ei.curFgColor |= AttrUnderline
+			ei.curFgColor |= tcell.Color(tcell.AttrUnderline)
 		case p == 7:
-			ei.curFgColor |= AttrReverse
+			ei.curFgColor |= tcell.Color(tcell.AttrReverse)
 		case p == 0:
 			ei.curFgColor = ColorDefault
 			ei.curBgColor = ColorDefault
@@ -201,7 +191,7 @@ func (ei *escapeInterpreter) output256() error {
 
 	switch fgbg {
 	case 38:
-		ei.curFgColor = Attribute(color + 1)
+		ei.curFgColor = tcell.Color(color + 1)
 
 		for _, param := range ei.csiParam[3:] {
 			p, err := strconv.Atoi(param)
@@ -211,15 +201,15 @@ func (ei *escapeInterpreter) output256() error {
 
 			switch {
 			case p == 1:
-				ei.curFgColor |= AttrBold
+				ei.curFgColor |= tcell.Color(AttrBold)
 			case p == 4:
-				ei.curFgColor |= AttrUnderline
+				ei.curFgColor |= tcell.Color(AttrUnderline)
 			case p == 7:
-				ei.curFgColor |= AttrReverse
+				ei.curFgColor |= tcell.Color(AttrReverse)
 			}
 		}
 	case 48:
-		ei.curBgColor = Attribute(color + 1)
+		ei.curBgColor = tcell.Color(color + 1)
 	default:
 		return errCSIParseError
 	}
