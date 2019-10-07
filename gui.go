@@ -74,10 +74,6 @@ type Gui struct {
 	// match any known sequence, ESC means KeyEsc.
 	InputEsc bool
 
-	// If ASCII is true then use ASCII instead of unicode to draw the
-	// interface. Using ASCII is more portable.
-	ASCII bool
-
 	// SupportOverlaps is true when we allow for view edges to overlap with other
 	// view edges
 	SupportOverlaps bool
@@ -118,7 +114,24 @@ func NewGui(supportOverlaps bool) (*Gui, error) {
 	// view edges
 	g.SupportOverlaps = supportOverlaps
 
+	g.RegisterFallbacks()
+
 	return g, nil
+}
+
+// RegisterFallbacks adds fallback chars in case only ASCII is supported
+func (g *Gui) RegisterFallbacks() {
+	fallbacks := map[rune]string{
+		'─': "-",
+		'│': "|",
+		'┌': "+",
+		'┐': "+",
+		'└': "+",
+		'┘': "+",
+	}
+	for r, fallback := range fallbacks {
+		g.screen.RegisterRuneFallback(r, fallback)
+	}
 }
 
 // Close finalizes the library. It should be called after a successful
@@ -283,14 +296,12 @@ func (g *Gui) CurrentView() *View {
 // SetKeybinding creates a new keybinding. If viewname equals to ""
 // (empty string) then the keybinding will apply to all views. key must
 // be a rune or a Key.
-func (g *Gui) SetKeybinding(viewname string, key interface{}, mod tcell.ModMask, handler func(*Gui, *View) error) error {
-	var kb *keybinding
-
+func (g *Gui) SetKeybinding(viewname string, key tcell.Key, mod tcell.ModMask, handler func(*Gui, *View) error) error {
 	k, ch, err := getKey(key)
 	if err != nil {
 		return err
 	}
-	kb = newKeybinding(viewname, k, ch, mod, handler)
+	kb := newKeybinding(viewname, k, ch, mod, handler)
 	g.keybindings = append(g.keybindings, kb)
 	return nil
 }
@@ -526,9 +537,6 @@ func (g *Gui) flush() error {
 // drawFrameEdges draws the horizontal and vertical edges of a view.
 func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor tcell.Color) error {
 	runeH, runeV := '─', '│'
-	if g.ASCII {
-		runeH, runeV = '-', '|'
-	}
 
 	for x := v.x0 + 1; x < v.x1 && x < g.maxX; x++ {
 		if x < 0 {
@@ -592,9 +600,6 @@ func (g *Gui) drawFrameCorners(v *View, fgColor, bgColor tcell.Color) error {
 		runeTR = corner(v, BOTTOM|LEFT)
 		runeBL = corner(v, TOP|RIGHT)
 		runeBR = corner(v, TOP|LEFT)
-	}
-	if g.ASCII {
-		runeTL, runeTR, runeBL, runeBR = '+', '+', '+', '+'
 	}
 
 	corners := []struct {
