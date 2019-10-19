@@ -107,8 +107,8 @@ func NewGui(supportOverlaps bool) (*Gui, error) {
 
 	g.maxX, g.maxY = screen.Size()
 
-	g.BgColor, g.FgColor = ColorDefault, ColorDefault
-	g.SelBgColor, g.SelFgColor = ColorDefault, ColorDefault
+	g.BgColor, g.FgColor, g.FrameColor = ColorDefault, ColorDefault, ColorDefault
+	g.SelBgColor, g.SelFgColor, g.SelFrameColor = ColorDefault, ColorDefault, ColorDefault
 
 	// SupportOverlaps is true when we allow for view edges to overlap with other
 	// view edges
@@ -406,8 +406,7 @@ func (g *Gui) MainLoop() error {
 
 	go func() {
 		for {
-			ev := g.screen.PollEvent()
-			g.tcellEvent <- ev
+			g.tcellEvent <- g.screen.PollEvent()
 		}
 	}()
 
