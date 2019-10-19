@@ -296,7 +296,7 @@ func (g *Gui) CurrentView() *View {
 // SetKeybinding creates a new keybinding. If viewname equals to ""
 // (empty string) then the keybinding will apply to all views. key must
 // be a rune or a Key.
-func (g *Gui) SetKeybinding(viewname string, key tcell.Key, mod tcell.ModMask, handler func(*Gui, *View) error) error {
+func (g *Gui) SetKeybinding(viewname string, key interface{}, mod tcell.ModMask, handler func(*Gui, *View) error) error {
 	k, ch, err := getKey(key)
 	if err != nil {
 		return err
@@ -406,7 +406,8 @@ func (g *Gui) MainLoop() error {
 
 	go func() {
 		for {
-			g.tcellEvent <- g.screen.PollEvent()
+			ev := g.screen.PollEvent()
+			g.tcellEvent <- ev
 		}
 	}()
 
@@ -425,7 +426,7 @@ func (g *Gui) MainLoop() error {
 		case <-g.stop:
 			return nil
 		case ev := <-g.tcellEvent:
-			if err := g.handleEvent(&ev); err != nil {
+			if err := g.handleEvent(ev); err != nil {
 				return err
 			}
 		case ev := <-g.userEvents:
@@ -460,9 +461,8 @@ func (g *Gui) consumeevents() error {
 	}
 }
 
-// handleEvent handles an event, based on its type (key-press, error,
-// etc.)
-func (g *Gui) handleEvent(ev interface{}) error {
+// handleEvent handles an event, based on its type (key-press, error, etc.)
+func (g *Gui) handleEvent(ev tcell.Event) error {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		return g.onKey(ev)
@@ -470,6 +470,8 @@ func (g *Gui) handleEvent(ev interface{}) error {
 		return g.onMouse(ev)
 	case *tcell.EventError:
 		return ev
+	case *tcell.EventResize:
+		return g.flush()
 	default:
 		return nil
 	}
@@ -737,7 +739,7 @@ func (g *Gui) execKeybindings(v *View, ev tcell.Event) (matched bool, err error)
 
 		switch ev := ev.(type) {
 		case *tcell.EventKey:
-			if !kb.matchKeypress(ev.Key(), ev.Rune(), ev.Modifiers()) {
+			if !kb.matchKeypress(ev) {
 				continue
 			}
 		case *tcell.EventMouse:

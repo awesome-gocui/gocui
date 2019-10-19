@@ -28,8 +28,11 @@ func newKeybinding(viewname string, key tcell.Key, ch rune, mod tcell.ModMask, h
 }
 
 // matchKeypress returns if the keybinding matches the keypress.
-func (kb *keybinding) matchKeypress(key tcell.Key, ch rune, mod tcell.ModMask) bool {
-	return kb.key == key && kb.ch == ch && kb.mod == mod
+func (kb *keybinding) matchKeypress(keyEvent *tcell.EventKey) bool {
+	if kb.mod > 0 && kb.mod != keyEvent.Modifiers() {
+		return false
+	}
+	return kb.key == keyEvent.Key() || kb.ch == keyEvent.Rune()
 }
 
 // matchView returns if the keybinding matches the current view.
