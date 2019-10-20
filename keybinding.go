@@ -32,7 +32,7 @@ func (kb *keybinding) matchKeypress(keyEvent *tcell.EventKey) bool {
 	if kb.mod > 0 && kb.mod != keyEvent.Modifiers() {
 		return false
 	}
-	return kb.key == keyEvent.Key() || kb.ch == keyEvent.Rune()
+	return (kb.key != 0 && kb.key == keyEvent.Key()) || (kb.ch != 0 && kb.ch == keyEvent.Rune())
 }
 
 // matchView returns if the keybinding matches the current view.
