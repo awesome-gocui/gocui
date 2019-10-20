@@ -9,10 +9,11 @@ import (
 	"log"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/gdamore/tcell"
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal, true)
+	g, err := gocui.NewGui(true)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -56,14 +57,14 @@ func layout(g *gocui.Gui) error {
 }
 
 func keybindings(g *gocui.Gui) error {
-	err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+	err := g.SetKeybinding("", tcell.KeyCtrlC, tcell.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		return gocui.ErrQuit
 	})
 	if err != nil {
 		return err
 	}
 
-	err = g.SetKeybinding("", '1', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+	err = g.SetKeybinding("", '1', tcell.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		_, err := g.SetViewOnTop("v1")
 		return err
 	})
@@ -71,7 +72,7 @@ func keybindings(g *gocui.Gui) error {
 		return err
 	}
 
-	err = g.SetKeybinding("", '2', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+	err = g.SetKeybinding("", '2', tcell.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		_, err := g.SetViewOnTop("v2")
 		return err
 	})
@@ -79,7 +80,7 @@ func keybindings(g *gocui.Gui) error {
 		return err
 	}
 
-	err = g.SetKeybinding("", '3', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+	err = g.SetKeybinding("", '3', tcell.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		_, err := g.SetViewOnTop("v3")
 		return err
 	})

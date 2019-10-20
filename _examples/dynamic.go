@@ -21,7 +21,7 @@ var (
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal, true)
+	g, err := gocui.NewGui(true)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -64,62 +64,62 @@ func layout(g *gocui.Gui) error {
 }
 
 func initKeybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone,
+	if err := g.SetKeybinding("", tcell.KeyCtrlC, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return gocui.ErrQuit
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeySpace, gocui.ModNone,
+	if err := g.SetKeybinding("", gocui.KeySpace, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return newView(g)
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeyBackspace2, gocui.ModNone,
+	if err := g.SetKeybinding("", gocui.KeyBackspace2, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return delView(g)
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone,
+	if err := g.SetKeybinding("", gocui.KeyTab, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return nextView(g, true)
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeyArrowLeft, gocui.ModNone,
+	if err := g.SetKeybinding("", gocui.KeyArrowLeft, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return moveView(g, v, -delta, 0)
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeyArrowRight, gocui.ModNone,
+	if err := g.SetKeybinding("", gocui.KeyArrowRight, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return moveView(g, v, delta, 0)
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone,
+	if err := g.SetKeybinding("", gocui.KeyArrowDown, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return moveView(g, v, 0, delta)
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone,
+	if err := g.SetKeybinding("", gocui.KeyArrowUp, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return moveView(g, v, 0, -delta)
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", 't', gocui.ModNone,
+	if err := g.SetKeybinding("", 't', tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			_, err := g.SetViewOnTop(views[curView])
 			return err
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", 'b', gocui.ModNone,
+	if err := g.SetKeybinding("", 'b', tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			_, err := g.SetViewOnBottom(views[curView])
 			return err

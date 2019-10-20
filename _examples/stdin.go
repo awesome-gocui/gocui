@@ -14,10 +14,11 @@ import (
 	"os"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/gdamore/tcell"
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal, true)
+	g, err := gocui.NewGui(true)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -68,20 +69,20 @@ func layout(g *gocui.Gui) error {
 }
 
 func initKeybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", tcell.KeyCtrlC, tcell.ModNone, quit); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("stdin", 'a', gocui.ModNone, autoscroll); err != nil {
+	if err := g.SetKeybinding("stdin", 'a', tcell.ModNone, autoscroll); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("stdin", gocui.KeyArrowUp, gocui.ModNone,
+	if err := g.SetKeybinding("stdin", tcell.KeyUp, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			scrollView(v, -1)
 			return nil
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("stdin", gocui.KeyArrowDown, gocui.ModNone,
+	if err := g.SetKeybinding("stdin", tcell.KeyDown, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			scrollView(v, 1)
 			return nil

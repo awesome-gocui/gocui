@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal, true)
+	g, err := gocui.NewGui(true)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -58,13 +58,13 @@ func layout(g *gocui.Gui) error {
 }
 
 func initKeybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone,
+	if err := g.SetKeybinding("", tcell.KeyCtrlC, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return gocui.ErrQuit
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("input", gocui.KeyCtrlA, gocui.ModNone,
+	if err := g.SetKeybinding("input", gocui.KeyCtrlA, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			v.Mask ^= '*'
 			return nil

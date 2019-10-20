@@ -63,7 +63,7 @@ func (t *Table) Layout(g *gocui.Gui) error {
 }
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal, false)
+	g, err := gocui.NewGui(false)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -84,7 +84,7 @@ func main() {
 	}
 	g.SetManager(table)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", tcell.KeyCtrlC, tcell.ModNone, quit); err != nil {
 		log.Panicln(err)
 	}
 

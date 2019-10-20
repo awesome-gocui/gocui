@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/gdamore/tcell"
 )
 
 func nextView(g *gocui.Gui, v *gocui.View) error {
@@ -86,32 +87,32 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func keybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("side", gocui.KeyCtrlSpace, gocui.ModNone, nextView); err != nil {
+	if err := g.SetKeybinding("side", tcell.KeyCtrlSpace, tcell.ModNone, nextView); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("main", gocui.KeyCtrlSpace, gocui.ModNone, nextView); err != nil {
+	if err := g.SetKeybinding("main", tcell.KeyCtrlSpace, tcell.ModNone, nextView); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("side", gocui.KeyArrowDown, gocui.ModNone, cursorDown); err != nil {
+	if err := g.SetKeybinding("side", tcell.KeyDown, tcell.ModNone, cursorDown); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("side", gocui.KeyArrowUp, gocui.ModNone, cursorUp); err != nil {
+	if err := g.SetKeybinding("side", tcell.KeyUp, tcell.ModNone, cursorUp); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", tcell.KeyCtrlC, tcell.ModNone, quit); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("side", gocui.KeyEnter, gocui.ModNone, getLine); err != nil {
+	if err := g.SetKeybinding("side", tcell.KeyEnter, tcell.ModNone, getLine); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("msg", gocui.KeyEnter, gocui.ModNone, delMsg); err != nil {
+	if err := g.SetKeybinding("msg", tcell.KeyEnter, tcell.ModNone, delMsg); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.KeyCtrlS, gocui.ModNone, saveMain); err != nil {
+	if err := g.SetKeybinding("main", tcell.KeyCtrlS, tcell.ModNone, saveMain); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("main", gocui.KeyCtrlW, gocui.ModNone, saveVisualMain); err != nil {
+	if err := g.SetKeybinding("main", tcell.KeyCtrlW, tcell.ModNone, saveVisualMain); err != nil {
 		return err
 	}
 	return nil
@@ -191,7 +192,7 @@ func layout(g *gocui.Gui) error {
 }
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal, true)
+	g, err := gocui.NewGui(true)
 	if err != nil {
 		log.Panicln(err)
 	}

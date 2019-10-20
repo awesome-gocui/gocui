@@ -42,7 +42,7 @@ func layout(g *gocui.Gui) error {
 }
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal, true)
+	g, err := gocui.NewGui(true)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -52,10 +52,10 @@ func main() {
 
 	g.SetManagerFunc(layout)
 
-	if err := g.SetKeybinding("main", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("main", tcell.KeyCtrlC, tcell.ModNone, quit); err != nil {
 		log.Panicln(err)
 	}
-	if err := g.SetKeybinding("main", gocui.KeyCtrlI, gocui.ModNone, overwrite); err != nil {
+	if err := g.SetKeybinding("main", gocui.KeyCtrlI, tcell.ModNone, overwrite); err != nil {
 		log.Panicln(err)
 	}
 

@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal, true)
+	g, err := gocui.NewGui(true)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -61,15 +61,15 @@ func layout(g *gocui.Gui) error {
 }
 
 func keybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", tcell.KeyCtrlC, tcell.ModNone, quit); err != nil {
 		return err
 	}
 	for _, n := range []string{"but1", "but2"} {
-		if err := g.SetKeybinding(n, gocui.MouseLeft, gocui.ModNone, showMsg); err != nil {
+		if err := g.SetKeybinding(n, gocui.MouseLeft, tcell.ModNone, showMsg); err != nil {
 			return err
 		}
 	}
-	if err := g.SetKeybinding("msg", gocui.MouseLeft, gocui.ModNone, delMsg); err != nil {
+	if err := g.SetKeybinding("msg", gocui.MouseLeft, tcell.ModNone, delMsg); err != nil {
 		return err
 	}
 	return nil
