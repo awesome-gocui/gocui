@@ -501,13 +501,9 @@ func (g *Gui) flush() error {
 		if v.Frame {
 			var fgColor, bgColor, frameColor tcell.Color
 			if g.Highlight && v == g.currentView {
-				fgColor = g.SelFgColor
-				bgColor = g.SelBgColor
-				frameColor = g.SelFrameColor
+				frameColor, fgColor, bgColor = g.SelFrameColor, g.SelFgColor, g.SelBgColor
 			} else {
-				fgColor = g.FgColor
-				bgColor = g.BgColor
-				frameColor = g.FrameColor
+				frameColor, fgColor, bgColor = g.FrameColor, g.FgColor, g.BgColor
 			}
 
 			if err := g.drawFrameEdges(v, frameColor, bgColor); err != nil {

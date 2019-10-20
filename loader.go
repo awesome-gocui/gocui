@@ -1,6 +1,8 @@
 package gocui
 
-import "time"
+import (
+	"time"
+)
 
 func (g *Gui) loaderTick() {
 	go func() {
@@ -19,12 +21,16 @@ func (v *View) loaderLines() [][]cell {
 	duplicate := make([][]cell, len(v.lines))
 	for i := range v.lines {
 		if i < len(v.lines)-1 {
-			duplicate[i] = make([]cell, len(v.lines[i]))
+			duplicate[i] = newCellArray(len(v.lines[i]))
 			copy(duplicate[i], v.lines[i])
 		} else {
-			duplicate[i] = make([]cell, len(v.lines[i])+2)
+			duplicate[i] = newCellArray(len(v.lines[i]) + 2)
 			copy(duplicate[i], v.lines[i])
-			duplicate[i][len(duplicate[i])-2] = cell{chr: ' '}
+			duplicate[i][len(duplicate[i])-2] = cell{
+				chr:     ' ',
+				bgColor: ColorDefault,
+				fgColor: ColorDefault,
+			}
 			duplicate[i][len(duplicate[i])-1] = Loader()
 		}
 	}
@@ -41,6 +47,8 @@ func Loader() cell {
 	str := characters[index : index+1]
 	chr := []rune(str)[0]
 	return cell{
-		chr: chr,
+		chr:     chr,
+		bgColor: ColorDefault,
+		fgColor: ColorDefault,
 	}
 }

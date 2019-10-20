@@ -127,6 +127,15 @@ type cell struct {
 
 type lineType []cell
 
+func newCellArray(len int) []cell {
+	cells := make([]cell, len)
+	for i, cell := range cells {
+		cell.fgColor, cell.bgColor = ColorDefault, ColorDefault
+		cells[i] = cell
+	}
+	return cells
+}
+
 // String returns a string from a given cell slice.
 func (l lineType) String() string {
 	str := ""
@@ -150,6 +159,8 @@ func newView(screen tcell.Screen, name string, x0, y0, x1, y1 int) *View {
 		tainted: true,
 		ei:      newEscapeInterpreter(),
 		screen:  screen,
+		BgColor: ColorDefault,
+		FgColor: ColorDefault,
 	}
 	return v
 }
@@ -304,7 +315,10 @@ func (v *View) makeWriteable(x, y int) {
 			}
 			v.lines[y] = v.lines[y][:newLen]
 		} else {
-			v.lines[y] = append(v.lines[y], cell{})
+			v.lines[y] = append(v.lines[y], cell{
+				bgColor: ColorDefault,
+				fgColor: ColorDefault,
+			})
 		}
 	}
 }
@@ -709,7 +723,7 @@ func (v *View) SetLine(y int, text string) error {
 	}
 
 	v.tainted = true
-	line := make([]cell, 0)
+	line := newCellArray(0)
 	for _, r := range text {
 		c := v.parseInput(r)
 		line = append(line, c...)
@@ -727,7 +741,7 @@ func (v *View) SetHighlight(y int, on bool) error {
 	}
 
 	line := v.lines[y]
-	cells := make([]cell, 0)
+	cells := newCellArray(0)
 	for _, c := range line {
 		if on {
 			c.bgColor = v.SelBgColor

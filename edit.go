@@ -297,9 +297,9 @@ func (v *View) writeRune(x, y int, ch rune) error {
 
 	var s []cell
 	if x >= len(v.lines[y]) {
-		s = make([]cell, x-len(v.lines[y])+1)
+		s = newCellArray(x - len(v.lines[y]) + 1)
 	} else if !v.Overwrite {
-		s = make([]cell, 1)
+		s = newCellArray(1)
 	}
 	v.lines[y] = append(v.lines[y], s...)
 
@@ -380,9 +380,9 @@ func (v *View) breakLine(x, y int) error {
 
 	var left, right []cell
 	if x < len(v.lines[y]) { // break line
-		left = make([]cell, len(v.lines[y][:x]))
+		left = newCellArray(len(v.lines[y][:x]))
 		copy(left, v.lines[y][:x])
-		right = make([]cell, len(v.lines[y][x:]))
+		right = newCellArray(len(v.lines[y][x:]))
 		copy(right, v.lines[y][x:])
 	} else { // new empty line
 		left = v.lines[y]
