@@ -25,13 +25,14 @@ A community fork based on the amazing work of [jroimartin](https://github.com/jr
 
 This fork has many improvements over the original work from [jroimartin](https://github.com/jroimartin/gocui).  
 
+* Build on tcell instaid of go-termbox
 * Better wide character support
 * Support for 1 Line height views
 * Better support for running in docker container
 * Customize frame colors
 * Improved code comments and quality
-* Many small improvements
 * Change Visibility of views
+* Many other small improvements
 
 For information about this org see: [awesome-gocui/about](https://github.com/awesome-gocui/about).
 

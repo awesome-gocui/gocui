@@ -97,8 +97,9 @@ func NewGui(supportOverlaps bool) (*Gui, error) {
 
 	screen.Clear()
 
-	g := &Gui{screen: screen}
+	g := &Gui{}
 
+	g.screen = screen
 	g.stop = make(chan struct{})
 
 	g.rerenderEvents = make(chan struct{})
