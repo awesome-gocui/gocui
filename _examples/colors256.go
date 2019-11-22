@@ -9,10 +9,11 @@ import (
 	"log"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/gdamore/tcell"
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.Output256, true)
+	g, err := gocui.NewGui(true)
 
 	if err != nil {
 		log.Panicln(err)

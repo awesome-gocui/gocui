@@ -405,12 +405,11 @@ func (v *View) parseInput(ch rune) []cell {
 	isEscape, err := v.ei.parseOne(ch)
 	if err != nil {
 		for _, r := range v.ei.runes() {
-			c := cell{
+			cells = append(cells, cell{
 				fgColor: v.FgColor,
 				bgColor: v.BgColor,
 				chr:     r,
-			}
-			cells = append(cells, c)
+			})
 		}
 		v.ei.reset()
 	} else {
@@ -423,12 +422,11 @@ func (v *View) parseInput(ch rune) []cell {
 			repeatCount = 4
 		}
 		for i := 0; i < repeatCount; i++ {
-			c := cell{
+			cells = append(cells, cell{
 				fgColor: v.ei.curFgColor,
 				bgColor: v.ei.curBgColor,
 				chr:     ch,
-			}
-			cells = append(cells, c)
+			})
 		}
 	}
 

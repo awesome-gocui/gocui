@@ -9,6 +9,7 @@ import (
 	"log"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/gdamore/tcell"
 )
 
 func main() {
@@ -64,7 +65,7 @@ func initKeybindings(g *gocui.Gui) error {
 		}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("input", gocui.KeyCtrlA, tcell.ModNone,
+	if err := g.SetKeybinding("input", tcell.KeyCtrlA, tcell.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			v.Mask ^= '*'
 			return nil
