@@ -46,8 +46,9 @@ func Parse(input string) (interface{}, tcell.ModMask, error) {
 	exist := false
 	var key tcell.Key
 	for mapKey, name := range tcell.KeyNames {
-		if name == strings.Join(cleaned, "") {
+		if name == strings.Join(cleaned, "-") {
 			key = mapKey
+			exist = true
 			break
 		}
 	}

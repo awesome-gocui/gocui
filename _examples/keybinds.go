@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/gdamore/tcell"
 )
 
 // layout generates the view
@@ -31,7 +32,7 @@ func quit(_ *gocui.Gui, _ *gocui.View) error {
 
 func main() {
 	// Create a gui
-	g, err := gocui.NewGui(gocui.OutputNormal, false)
+	g, err := gocui.NewGui(false)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -55,13 +56,13 @@ func main() {
 
 	// We can blacklist a keybinding.
 	// This allows us to prevent setting the keybinding.
-	if err := g.BlacklistKeybinding(gocui.KeyCtrlC); err != nil {
+	if err := g.BlacklistKeybinding(tcell.KeyCtrlC); err != nil {
 		log.Panic(err)
 	}
 
 	// If for some reason you want to whitelist the keybinding,
 	// you can allow it again by calling g.WhitelistKeybinding.
-	if err := g.WhitelistKeybinding(gocui.KeyCtrlC); err != nil {
+	if err := g.WhitelistKeybinding(tcell.KeyCtrlC); err != nil {
 		log.Panic(err)
 	}
 
