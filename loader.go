@@ -2,6 +2,8 @@ package gocui
 
 import (
 	"time"
+
+	"github.com/gdamore/tcell"
 )
 
 func (g *Gui) loaderTick() {
@@ -28,8 +30,8 @@ func (v *View) loaderLines() [][]cell {
 			copy(duplicate[i], v.lines[i])
 			duplicate[i][len(duplicate[i])-2] = cell{
 				chr:     ' ',
-				bgColor: ColorDefault,
-				fgColor: ColorDefault,
+				bgColor: tcell.ColorDefault,
+				fgColor: tcell.ColorDefault,
 			}
 			duplicate[i][len(duplicate[i])-1] = Loader()
 		}
@@ -48,7 +50,7 @@ func Loader() cell {
 	chr := []rune(str)[0]
 	return cell{
 		chr:     chr,
-		bgColor: ColorDefault,
-		fgColor: ColorDefault,
+		bgColor: tcell.ColorDefault,
+		fgColor: tcell.ColorDefault,
 	}
 }

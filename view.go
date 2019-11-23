@@ -123,6 +123,7 @@ type viewLine struct {
 type cell struct {
 	chr              rune
 	bgColor, fgColor tcell.Color
+	Attr             tcell.AttrMask
 }
 
 type lineType []cell
@@ -130,10 +131,14 @@ type lineType []cell
 func newCellArray(len int) []cell {
 	cells := make([]cell, len)
 	for i, cell := range cells {
-		cell.fgColor, cell.bgColor = ColorDefault, ColorDefault
+		cell.fgColor, cell.bgColor = tcell.ColorDefault, tcell.ColorDefault
 		cells[i] = cell
 	}
 	return cells
+}
+
+func (c *cell) getStyle() tcell.Style {
+	return tcell.StyleDefault.Foreground(c.fgColor).Background(c.bgColor) | tcell.Style(c.Attr)
 }
 
 // String returns a string from a given cell slice.
@@ -159,8 +164,8 @@ func newView(screen tcell.Screen, name string, x0, y0, x1, y1 int) *View {
 		tainted: true,
 		ei:      newEscapeInterpreter(),
 		screen:  screen,
-		BgColor: ColorDefault,
-		FgColor: ColorDefault,
+		BgColor: tcell.ColorDefault,
+		FgColor: tcell.ColorDefault,
 	}
 	return v
 }
@@ -183,7 +188,7 @@ func (v *View) Name() string {
 // setRune sets a rune at the given point relative to the view. It applies the
 // specified colors, taking into account if the cell must be highlighted. Also,
 // it checks if the position is valid.
-func (v *View) setRune(x, y int, ch rune, fgColor, bgColor tcell.Color) error {
+func (v *View) setRune(x, y int, newCell cell) error {
 	maxX, maxY := v.Size()
 	if x < 0 || x >= maxX || y < 0 || y >= maxY {
 		return ErrInvalidPoint
@@ -204,18 +209,22 @@ func (v *View) setRune(x, y int, ch rune, fgColor, bgColor tcell.Color) error {
 	}
 
 	if v.Mask != 0 {
-		fgColor = v.FgColor
-		bgColor = v.BgColor
-		ch = v.Mask
+		newCell.fgColor = v.FgColor
+		newCell.bgColor = v.BgColor
+		newCell.chr = v.Mask
 	}
 
 	// Don't display NUL characters
-	if ch == 0 {
-		ch = ' '
+	if newCell.chr == 0 {
+		newCell.chr = ' '
 	}
 
-	style := tcell.StyleDefault.Foreground(fgColor).Background(bgColor).Bold(v.Highlight && ry == rcy)
-	v.screen.SetCell(v.x0+x+1, v.y0+y+1, style, ch)
+	// Highlight the line with bold text
+	if v.Highlight && ry == rcy {
+		newCell.Attr |= tcell.AttrBold
+	}
+
+	v.screen.SetCell(v.x0+x+1, v.y0+y+1, newCell.getStyle(), newCell.chr)
 
 	return nil
 }
@@ -316,8 +325,8 @@ func (v *View) makeWriteable(x, y int) {
 			v.lines[y] = v.lines[y][:newLen]
 		} else {
 			v.lines[y] = append(v.lines[y], cell{
-				bgColor: ColorDefault,
-				fgColor: ColorDefault,
+				bgColor: tcell.ColorDefault,
+				fgColor: tcell.ColorDefault,
 			})
 		}
 	}
@@ -425,6 +434,7 @@ func (v *View) parseInput(ch rune) []cell {
 			cells = append(cells, cell{
 				fgColor: v.ei.curFgColor,
 				bgColor: v.ei.curBgColor,
+				Attr:    v.ei.curAttr,
 				chr:     ch,
 			})
 		}
@@ -545,16 +555,14 @@ func (v *View) draw() error {
 				break
 			}
 
-			fgColor := c.fgColor
-			if fgColor == ColorDefault {
-				fgColor = v.FgColor
+			if c.fgColor == tcell.ColorDefault {
+				c.fgColor = v.FgColor
 			}
-			bgColor := c.bgColor
-			if bgColor == ColorDefault {
-				bgColor = v.BgColor
+			if c.bgColor == tcell.ColorDefault {
+				c.bgColor = v.BgColor
 			}
 
-			if err := v.setRune(x, y, c.chr, fgColor, bgColor); err != nil {
+			if err := v.setRune(x, y, c); err != nil {
 				return err
 			}
 

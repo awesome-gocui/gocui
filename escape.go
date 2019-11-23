@@ -16,6 +16,7 @@ type escapeInterpreter struct {
 	curch                  rune
 	csiParam               []string
 	curFgColor, curBgColor tcell.Color
+	curAttr                tcell.AttrMask
 }
 
 type (
@@ -67,8 +68,9 @@ func (ei *escapeInterpreter) runes() []rune {
 func newEscapeInterpreter() *escapeInterpreter {
 	ei := &escapeInterpreter{
 		state:      stateNone,
-		curFgColor: ColorDefault,
-		curBgColor: ColorDefault,
+		curFgColor: tcell.ColorDefault,
+		curBgColor: tcell.ColorDefault,
+		curAttr:    tcell.AttrNone,
 	}
 	return ei
 }
@@ -76,8 +78,9 @@ func newEscapeInterpreter() *escapeInterpreter {
 // reset sets the escapeInterpreter in initial state.
 func (ei *escapeInterpreter) reset() {
 	ei.state = stateNone
-	ei.curFgColor = ColorDefault
-	ei.curBgColor = ColorDefault
+	ei.curFgColor = tcell.ColorDefault
+	ei.curBgColor = tcell.ColorDefault
+	ei.curAttr = tcell.AttrNone
 	ei.csiParam = nil
 }
 
@@ -128,6 +131,11 @@ func (ei *escapeInterpreter) parseOne(ch rune) (isEscape bool, err error) {
 			ei.csiParam = append(ei.csiParam, "")
 			return true, nil
 		case ch == 'm':
+			err := ei.output256()
+			if err != nil {
+				return false, errCSIParseError
+			}
+
 			ei.state = stateNone
 			ei.csiParam = nil
 			return true, nil
@@ -149,22 +157,23 @@ func (ei *escapeInterpreter) outputNormal() error {
 
 		switch {
 		case p >= 30 && p <= 37:
-			ei.curFgColor = tcell.Color(p - 30 + 1)
+			ei.curFgColor = tcell.Color(p - 30)
 		case p == 39:
-			ei.curFgColor = ColorDefault
+			ei.curFgColor = tcell.ColorDefault
 		case p >= 40 && p <= 47:
-			ei.curBgColor = tcell.Color(p - 40 + 1)
+			ei.curBgColor = tcell.Color(p - 40)
 		case p == 49:
-			ei.curBgColor = ColorDefault
+			ei.curBgColor = tcell.ColorDefault
 		case p == 1:
-			ei.curFgColor |= tcell.Color(tcell.AttrBold)
+			ei.curAttr |= tcell.AttrBold
 		case p == 4:
-			ei.curFgColor |= tcell.Color(tcell.AttrUnderline)
+			ei.curAttr |= tcell.AttrUnderline
 		case p == 7:
-			ei.curFgColor |= tcell.Color(tcell.AttrReverse)
+			ei.curAttr |= tcell.AttrReverse
 		case p == 0:
-			ei.curFgColor = ColorDefault
-			ei.curBgColor = ColorDefault
+			ei.curFgColor = tcell.ColorDefault
+			ei.curBgColor = tcell.ColorDefault
+			ei.curAttr = tcell.AttrNone
 		}
 	}
 
@@ -201,7 +210,7 @@ func (ei *escapeInterpreter) output256() error {
 
 		switch fontEffect(fgbg) {
 		case setForegroundColor:
-			ei.curFgColor = tcell.Color(color + 1)
+			ei.curFgColor = tcell.Color(color)
 
 			for _, s := range param[3:] {
 				p, err := strconv.Atoi(s)
@@ -211,16 +220,15 @@ func (ei *escapeInterpreter) output256() error {
 
 				switch fontEffect(p) {
 				case bold:
-					ei.curFgColor |= tcell.Color(AttrBold)
+					ei.curAttr |= tcell.AttrBold
 				case underline:
-					ei.curFgColor |= tcell.Color(AttrUnderline)
+					ei.curAttr |= tcell.AttrUnderline
 				case reverse:
-					ei.curFgColor |= tcell.Color(AttrReverse)
-
+					ei.curAttr |= tcell.AttrReverse
 				}
 			}
 		case setBackgroundColor:
-			ei.curBgColor = tcell.Color(color + 1)
+			ei.curBgColor = tcell.Color(color)
 		default:
 			return errCSIParseError
 		}

@@ -121,8 +121,8 @@ func NewGui(supportOverlaps bool) (*Gui, error) {
 
 	g.maxX, g.maxY = screen.Size()
 
-	g.BgColor, g.FgColor, g.FrameColor = ColorDefault, ColorDefault, ColorDefault
-	g.SelBgColor, g.SelFgColor, g.SelFrameColor = ColorDefault, ColorDefault, ColorDefault
+	g.BgColor, g.FgColor, g.FrameColor = tcell.ColorDefault, tcell.ColorDefault, tcell.ColorDefault
+	g.SelBgColor, g.SelFgColor, g.SelFrameColor = tcell.ColorDefault, tcell.ColorDefault, tcell.ColorDefault
 
 	// SupportOverlaps is true when we allow for view edges to overlap with other
 	// view edges
@@ -165,12 +165,18 @@ func (g *Gui) Size() (x, y int) {
 // SetRune writes a rune at the given point, relative to the top-left
 // corner of the terminal. It checks if the position is valid and applies
 // the given colors.
-func (g *Gui) SetRune(x, y int, ch rune, fgColor, bgColor tcell.Color) error {
+func (g *Gui) SetRune(x, y int, ch rune, fgColor, bgColor tcell.Color, attr tcell.AttrMask) error {
 	if x < 0 || y < 0 || x >= g.maxX || y >= g.maxY {
 		return errors.New("invalid point")
 	}
 
-	g.screen.SetCell(x, y, tcell.StyleDefault.Foreground(fgColor).Background(bgColor), ch)
+	cellMeta := cell{
+		bgColor: bgColor,
+		fgColor: fgColor,
+		Attr:    attr,
+	}
+
+	g.screen.SetCell(x, y, cellMeta.getStyle(), ch)
 	return nil
 }
 
@@ -558,19 +564,19 @@ func (g *Gui) flush() error {
 				frameColor, fgColor, bgColor = g.FrameColor, g.FgColor, g.BgColor
 			}
 
-			if err := g.drawFrameEdges(v, frameColor, bgColor); err != nil {
+			if err := g.drawFrameEdges(v, frameColor, bgColor, 0); err != nil {
 				return err
 			}
-			if err := g.drawFrameCorners(v, frameColor, bgColor); err != nil {
+			if err := g.drawFrameCorners(v, frameColor, bgColor, 0); err != nil {
 				return err
 			}
 			if v.Title != "" {
-				if err := g.drawTitle(v, fgColor, bgColor); err != nil {
+				if err := g.drawTitle(v, fgColor, bgColor, 0); err != nil {
 					return err
 				}
 			}
 			if v.Subtitle != "" {
-				if err := g.drawSubtitle(v, fgColor, bgColor); err != nil {
+				if err := g.drawSubtitle(v, fgColor, bgColor, 0); err != nil {
 					return err
 				}
 			}
@@ -584,7 +590,7 @@ func (g *Gui) flush() error {
 }
 
 // drawFrameEdges draws the horizontal and vertical edges of a view.
-func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor tcell.Color) error {
+func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor tcell.Color, attr tcell.AttrMask) error {
 	runeH, runeV := '─', '│'
 
 	for x := v.x0 + 1; x < v.x1 && x < g.maxX; x++ {
@@ -592,12 +598,12 @@ func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor tcell.Color) error {
 			continue
 		}
 		if v.y0 > -1 && v.y0 < g.maxY {
-			if err := g.SetRune(x, v.y0, runeH, fgColor, bgColor); err != nil {
+			if err := g.SetRune(x, v.y0, runeH, fgColor, bgColor, attr); err != nil {
 				return err
 			}
 		}
 		if v.y1 > -1 && v.y1 < g.maxY {
-			if err := g.SetRune(x, v.y1, runeH, fgColor, bgColor); err != nil {
+			if err := g.SetRune(x, v.y1, runeH, fgColor, bgColor, attr); err != nil {
 				return err
 			}
 		}
@@ -607,12 +613,12 @@ func (g *Gui) drawFrameEdges(v *View, fgColor, bgColor tcell.Color) error {
 			continue
 		}
 		if v.x0 > -1 && v.x0 < g.maxX {
-			if err := g.SetRune(v.x0, y, runeV, fgColor, bgColor); err != nil {
+			if err := g.SetRune(v.x0, y, runeV, fgColor, bgColor, attr); err != nil {
 				return err
 			}
 		}
 		if v.x1 > -1 && v.x1 < g.maxX {
-			if err := g.SetRune(v.x1, y, runeV, fgColor, bgColor); err != nil {
+			if err := g.SetRune(v.x1, y, runeV, fgColor, bgColor, attr); err != nil {
 				return err
 			}
 		}
@@ -630,13 +636,13 @@ func corner(v *View, directions byte) rune {
 }
 
 // drawFrameCorners draws the corners of the view.
-func (g *Gui) drawFrameCorners(v *View, fgColor, bgColor tcell.Color) error {
+func (g *Gui) drawFrameCorners(v *View, fgColor, bgColor tcell.Color, attr tcell.AttrMask) error {
 	if v.y0 == v.y1 {
 		if !g.SupportOverlaps && v.x0 >= 0 && v.x1 >= 0 && v.y0 >= 0 && v.x0 < g.maxX && v.x1 < g.maxX && v.y0 < g.maxY {
-			if err := g.SetRune(v.x0, v.y0, '╶', fgColor, bgColor); err != nil {
+			if err := g.SetRune(v.x0, v.y0, '╶', fgColor, bgColor, attr); err != nil {
 				return err
 			}
-			if err := g.SetRune(v.x1, v.y0, '╴', fgColor, bgColor); err != nil {
+			if err := g.SetRune(v.x1, v.y0, '╴', fgColor, bgColor, attr); err != nil {
 				return err
 			}
 		}
@@ -658,7 +664,7 @@ func (g *Gui) drawFrameCorners(v *View, fgColor, bgColor tcell.Color) error {
 
 	for _, c := range corners {
 		if c.x >= 0 && c.y >= 0 && c.x < g.maxX && c.y < g.maxY {
-			if err := g.SetRune(c.x, c.y, c.ch, fgColor, bgColor); err != nil {
+			if err := g.SetRune(c.x, c.y, c.ch, fgColor, bgColor, attr); err != nil {
 				return err
 			}
 		}
@@ -667,7 +673,7 @@ func (g *Gui) drawFrameCorners(v *View, fgColor, bgColor tcell.Color) error {
 }
 
 // drawTitle draws the title of the view.
-func (g *Gui) drawTitle(v *View, fgColor, bgColor tcell.Color) error {
+func (g *Gui) drawTitle(v *View, fgColor, bgColor tcell.Color, attr tcell.AttrMask) error {
 	if v.y0 < 0 || v.y0 >= g.maxY {
 		return nil
 	}
@@ -679,7 +685,7 @@ func (g *Gui) drawTitle(v *View, fgColor, bgColor tcell.Color) error {
 		} else if x > v.x1-2 || x >= g.maxX {
 			break
 		}
-		if err := g.SetRune(x, v.y0, ch, fgColor, bgColor); err != nil {
+		if err := g.SetRune(x, v.y0, ch, fgColor, bgColor, attr); err != nil {
 			return err
 		}
 	}
@@ -687,7 +693,7 @@ func (g *Gui) drawTitle(v *View, fgColor, bgColor tcell.Color) error {
 }
 
 // drawSubtitle draws the subtitle of the view.
-func (g *Gui) drawSubtitle(v *View, fgColor, bgColor tcell.Color) error {
+func (g *Gui) drawSubtitle(v *View, fgColor, bgColor tcell.Color, attr tcell.AttrMask) error {
 	if v.y0 < 0 || v.y0 >= g.maxY {
 		return nil
 	}
@@ -701,7 +707,7 @@ func (g *Gui) drawSubtitle(v *View, fgColor, bgColor tcell.Color) error {
 		if x >= v.x1 {
 			break
 		}
-		if err := g.SetRune(x, v.y0, ch, fgColor, bgColor); err != nil {
+		if err := g.SetRune(x, v.y0, ch, fgColor, bgColor, attr); err != nil {
 			return err
 		}
 	}
