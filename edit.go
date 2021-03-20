@@ -271,24 +271,26 @@ func (v *View) writeRune(x, y int, ch rune) error {
 // position corresponding to the point (x, y).
 // returns the amount of columns that where removed.
 func (v *View) deleteRune(x, y int) (int, error) {
+
+	bf := v.BufferLines()
+	pos := v.BufferLinePosition()
+
+	if pos > 0 {
+		err := v.SetLine(pos, bf[pos])
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	v.tainted = true
 
 	if x < 0 || y < 0 || y >= len(v.lines) || x >= len(v.lines[y]) {
 		return 0, errors.New("invalid point")
 	}
 
-	var tw int
-	for i := range v.lines[y] {
-		w := runewidth.RuneWidth(v.lines[y][i].chr)
-		tw += w
-		if tw > x {
-			v.lines[y] = append(v.lines[y][:i], v.lines[y][i+1:]...)
-			return w, nil
-		}
+	v.lines[y] = append(v.lines[y][:x], v.lines[y][x+1:]...)
 
-	}
-
-	return 0, nil
+	return 1, nil
 }
 
 // mergeLines merges the lines "y" and "y+1" if possible.

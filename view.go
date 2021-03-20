@@ -229,6 +229,17 @@ func (v *View) setRune(x, y int, ch rune, fgColor, bgColor Attribute) error {
 	return nil
 }
 
+// BufferLinePosition returns the index current row in the view's internal
+// buffer. If out of bounds of the buffer return -1
+func (v *View) BufferLinePosition() (y int) {
+	_, y, _ = v.realPosition(0, v.cy)
+	// out of buffer
+	if y > len(v.BufferLines())-1 {
+		y = -1
+	}
+	return y
+}
+
 // SetCursor sets the cursor position of the view at the given point,
 //
 // Rules:
@@ -242,6 +253,27 @@ func (v *View) SetCursor(x, y int) error {
 	v.cx = x
 	v.cy = y
 	return nil
+}
+
+// SetViewLineUp sets the cursor position of the view at the one line up
+func (v *View) SetViewLineUp() {
+	if v.cy > 0 {
+		v.cy -= 1
+	} else if v.oy > 0 {
+		v.oy -= 1
+	}
+}
+
+// SetViewLineDown sets the cursor position of the view at the one line down
+func (v *View) SetViewLineDown() {
+	_, maxY := v.Size()
+	if v.cy+v.oy < v.ViewLinesHeight()-1 {
+		if v.cy >= maxY-1 {
+			v.oy += 1
+		} else {
+			v.cy += 1
+		}
+	}
 }
 
 // Cursor returns the cursor position of the view.
@@ -768,7 +800,7 @@ func (v *View) Word(x, y int) (string, error) {
 	} else {
 		nr = nr + x
 	}
-	return string(str[nl:nr]), nil
+	return str[nl:nr], nil
 }
 
 // indexFunc allows to split lines by words taking into account spaces
