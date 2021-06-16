@@ -388,6 +388,7 @@ func (v *View) Write(p []byte) (n int, err error) {
 	v.makeWriteable(v.wx, v.wy)
 	v.writeRunes(bytes.Runes(p))
 	v.writeMutex.Unlock()
+	v.gui.userEvents <- userEvent{func(g *Gui) error { return nil }}
 
 	return len(p), nil
 }
