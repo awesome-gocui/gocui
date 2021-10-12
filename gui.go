@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sync"
+	"time"
 )
 
 // OutputMode represents an output mode, which determines how colors
@@ -32,6 +34,9 @@ var (
 
 	// ErrQuit is used to decide if the MainLoop finished successfully.
 	ErrQuit = errors.New("quit")
+
+	// ErrTimeout is returned when a wait times out.
+	ErrTimeout = errors.New("timeout")
 )
 
 const (
@@ -73,6 +78,8 @@ type Gui struct {
 	outputMode  OutputMode
 	stop        chan struct{}
 	blacklist   []Key
+	idleTime    time.Time
+	mu          sync.Mutex
 
 	// BgColor and FgColor allow to configure the background and foreground
 	// colors of the GUI.
@@ -129,6 +136,8 @@ func NewGui(mode OutputMode, supportOverlaps bool) (*Gui, error) {
 	g.gEvents = make(chan gocuiEvent, 20)
 	g.userEvents = make(chan userEvent, 20)
 
+	g.idleTime = time.Now()
+
 	var err error
 	if runtime.GOOS != "windows" && mode != OutputSimulator {
 		g.maxX, g.maxY, err = g.getTermWindowSize()
@@ -156,6 +165,19 @@ func (g *Gui) Close() {
 		g.stop <- struct{}{}
 	}()
 	screen.Fini()
+}
+
+// Block until the gui is idle for at least duration, or time out.
+func (g *Gui) WaitIdle(duration, timeout time.Duration) error {
+	expire := time.After(timeout)
+	for time.Now().Sub(g.idleTime) < duration {
+		select {
+		case <-time.After(10 * time.Millisecond):
+		case <-expire:
+			return ErrTimeout
+		}
+	}
+	return nil
 }
 
 // Size returns the terminal's size.
@@ -423,6 +445,7 @@ func (g *Gui) Update(f func(*Gui) error) {
 // tailing a file.  In general you should use Update()
 func (g *Gui) UpdateAsync(f func(*Gui) error) {
 	g.userEvents <- userEvent{f: f}
+	g.busy()
 }
 
 // A Manager is in charge of GUI's layout and can be used to build widgets.
@@ -450,7 +473,10 @@ func (g *Gui) SetManager(managers ...Manager) {
 	g.views = nil
 	g.keybindings = nil
 
-	go func() { g.gEvents <- gocuiEvent{Type: eventResize} }()
+	go func() {
+		g.gEvents <- gocuiEvent{Type: eventResize}
+		g.busy()
+	}()
 }
 
 // SetManagerFunc sets the given manager function. It deletes all views and
@@ -474,6 +500,7 @@ func (g *Gui) MainLoop() error {
 				return
 			default:
 				g.gEvents <- pollEvent()
+				g.busy()
 			}
 		}
 	}()
@@ -488,10 +515,12 @@ func (g *Gui) MainLoop() error {
 	for {
 		select {
 		case ev := <-g.gEvents:
+			g.busy()
 			if err := g.handleEvent(&ev); err != nil {
 				return err
 			}
 		case ev := <-g.userEvents:
+			g.busy()
 			if err := ev.f(g); err != nil {
 				return err
 			}
@@ -513,10 +542,12 @@ func (g *Gui) consumeevents() error {
 	for {
 		select {
 		case ev := <-g.gEvents:
+			g.busy()
 			if err := g.handleEvent(&ev); err != nil {
 				return err
 			}
 		case ev := <-g.userEvents:
+			g.busy()
 			if err := ev.f(g); err != nil {
 				return err
 			}
@@ -933,4 +964,11 @@ func (g *Gui) isBlacklisted(k Key) bool {
 		}
 	}
 	return false
+}
+
+// busy updates the idle timer with activity
+func (g *Gui) busy() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.idleTime = time.Now()
 }

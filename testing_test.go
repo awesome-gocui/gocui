@@ -60,7 +60,9 @@ func TestTestingScreenReturnsCorrectContent(t *testing.T) {
 	testingScreen.SendKey(KeyCtrlC)
 
 	// Wait for key to be processed
-	<-time.After(time.Millisecond * 50)
+	if err := g.WaitIdle(50*time.Millisecond, time.Second); err != nil {
+		t.Errorf("Gui never was idle: %v", err)
+	}
 
 	// Test that the keybinding fired and set "didCallCTRLC" to true
 	if !didCallCTRLC {
@@ -77,4 +79,41 @@ func TestTestingScreenReturnsCorrectContent(t *testing.T) {
 	if strings.TrimSpace(actualContent) != expectedViewContent {
 		t.Error(fmt.Printf("Expected view content to be: %q got: %q", expectedViewContent, actualContent))
 	}
+}
+
+func TestIdleTimeout(t *testing.T) {
+	viewName := "testView2"
+	// Create a view specifying the "OutputSimulator" mode
+	g, err := NewGui(OutputSimulator, true)
+	if err != nil {
+		log.Panicln(err)
+	}
+	g.SetManagerFunc(func(g *Gui) error {
+		maxX, maxY := g.Size()
+		if _, err := g.SetView(viewName, maxX/2-7, maxY/2, maxX/2+7, maxY/2+2, 0); err != nil {
+			if !errors.Is(err, ErrUnknownView) {
+				return err
+			}
+		}
+		return nil
+	})
+
+	// Create a test screen and start gocui
+	testingScreen := g.GetTestingScreen()
+	cleanup := testingScreen.StartGui()
+	defer cleanup()
+
+	// Keep typing
+	quit := false
+	go func() {
+		for !quit {
+			testingScreen.SendKey('.')
+			<-time.After(100 * time.Millisecond)
+		}
+	}()
+
+	if err := g.WaitIdle(200*time.Millisecond, 300*time.Millisecond); err == nil {
+		t.Error("Gui was unexpectedly idle!")
+	}
+	quit = true
 }
