@@ -78,6 +78,8 @@ type Gui struct {
 	outputMode  OutputMode
 	stop        chan struct{}
 	blacklist   []Key
+
+	idleClients counter
 	idleTime    time.Time
 	mu          sync.Mutex
 
@@ -110,6 +112,33 @@ type Gui struct {
 	// SupportOverlaps is true when we allow for view edges to overlap with other
 	// view edges
 	SupportOverlaps bool
+}
+
+// Thread safe counter
+type counter struct {
+	mu    sync.RWMutex
+	count int
+}
+
+func (c *counter) Add() {
+	c.mu.Lock()
+	c.count++
+	c.mu.Unlock()
+}
+
+func (c *counter) Done() {
+	c.mu.Lock()
+	if c.count < 1 {
+		panic("Done() called on empty counter")
+	}
+	c.count--
+	c.mu.Unlock()
+}
+
+func (c *counter) Empty() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.count == 0
 }
 
 // NewGui returns a new Gui object with a given output mode.
@@ -169,6 +198,9 @@ func (g *Gui) Close() {
 
 // Block until the gui is idle for at least duration, or time out.
 func (g *Gui) WaitIdle(duration, timeout time.Duration) error {
+	g.idleClients.Add()
+	defer func() { g.idleClients.Done() }()
+	g.busy()
 	expire := time.After(timeout)
 	for time.Now().Sub(g.idleTime) < duration {
 		select {
@@ -968,7 +1000,10 @@ func (g *Gui) isBlacklisted(k Key) bool {
 
 // busy updates the idle timer with activity
 func (g *Gui) busy() {
+	if g.idleClients.Empty() {
+		return
+	}
 	g.mu.Lock()
-	defer g.mu.Unlock()
 	g.idleTime = time.Now()
+	g.mu.Unlock()
 }
