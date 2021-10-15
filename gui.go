@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"sync"
 	"time"
 )
 
@@ -111,33 +110,6 @@ type Gui struct {
 	// SupportOverlaps is true when we allow for view edges to overlap with other
 	// view edges
 	SupportOverlaps bool
-}
-
-// Thread safe counter
-type counter struct {
-	mu    sync.RWMutex
-	count int
-}
-
-func (c *counter) Add() {
-	c.mu.Lock()
-	c.count++
-	c.mu.Unlock()
-}
-
-func (c *counter) Done() {
-	c.mu.Lock()
-	if c.count < 1 {
-		panic("Done() called on empty counter")
-	}
-	c.count--
-	c.mu.Unlock()
-}
-
-func (c *counter) Empty() bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.count == 0
 }
 
 // NewGui returns a new Gui object with a given output mode.
