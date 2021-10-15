@@ -173,7 +173,7 @@ func (g *Gui) WaitIdle(duration, timeout time.Duration) error {
 	expire := time.After(timeout)
 	for time.Now().Sub(g.idleTime) < duration {
 		select {
-		case <-time.After(10 * time.Millisecond):
+		case <-time.After(duration - time.Now().Sub(g.idleTime)):
 		case <-expire:
 			return ErrTimeout
 		}
