@@ -79,9 +79,8 @@ type Gui struct {
 	stop        chan struct{}
 	blacklist   []Key
 
-	idleClients counter
-	idleTime    time.Time
-	mu          sync.Mutex
+	idleTime  time.Time
+	busyTicks chan struct{}
 
 	// BgColor and FgColor allow to configure the background and foreground
 	// colors of the GUI.
@@ -161,6 +160,7 @@ func NewGui(mode OutputMode, supportOverlaps bool) (*Gui, error) {
 	g.outputMode = mode
 
 	g.stop = make(chan struct{})
+	g.busyTicks = make(chan struct{})
 
 	g.gEvents = make(chan gocuiEvent, 20)
 	g.userEvents = make(chan userEvent, 20)
@@ -198,9 +198,6 @@ func (g *Gui) Close() {
 
 // Block until the gui is idle for at least duration, or time out.
 func (g *Gui) WaitIdle(duration, timeout time.Duration) error {
-	g.idleClients.Add()
-	defer func() { g.idleClients.Done() }()
-	g.busy()
 	expire := time.After(timeout)
 	for time.Now().Sub(g.idleTime) < duration {
 		select {
@@ -524,6 +521,15 @@ func (g *Gui) MainLoop() error {
 	if err := g.flush(); err != nil {
 		return err
 	}
+
+	go func() {
+		for {
+			select {
+			case <-g.busyTicks:
+				g.idleTime = time.Now()
+			}
+		}
+	}()
 
 	go func() {
 		for {
@@ -998,12 +1004,7 @@ func (g *Gui) isBlacklisted(k Key) bool {
 	return false
 }
 
-// busy updates the idle timer with activity
+// busy indicates activity in the gui
 func (g *Gui) busy() {
-	if g.idleClients.Empty() {
-		return
-	}
-	g.mu.Lock()
-	g.idleTime = time.Now()
-	g.mu.Unlock()
+	g.busyTicks <- struct{}{}
 }
