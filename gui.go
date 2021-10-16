@@ -497,6 +497,8 @@ func (g *Gui) MainLoop() error {
 	go func() {
 		for {
 			select {
+			case <-g.stop:
+				return
 			case <-g.busyTicks:
 				g.idleTime = time.Now()
 			}
