@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+
+	"github.com/gdamore/tcell/v2"
 )
 
 // OutputMode represents an output mode, which determines how colors
@@ -926,6 +928,11 @@ func (g *Gui) execKeybindings(v *View, ev *gocuiEvent) (matched bool, err error)
 	return false, nil
 }
 
+// Set the style of the cursor
+func (g *Gui) SetCursorStyle(style CursorStyle) {
+	setCursorStyle(style)
+}
+
 // execKeybinding executes a given keybinding
 func (g *Gui) execKeybinding(v *View, kb *keybinding) (bool, error) {
 	if g.isBlacklisted(kb.key) {
@@ -947,3 +954,11 @@ func (g *Gui) isBlacklisted(k Key) bool {
 	}
 	return false
 }
+
+type CursorStyle = tcell.CursorStyle
+
+const (
+	CursorStyleBlinkingBlock     = CursorStyle(tcell.CursorStyleBlinkingBlock)
+	CursorStyleBlinkingBar       = CursorStyle(tcell.CursorStyleBlinkingBar)
+	CursorStyleBlinkingUnderline = CursorStyle(tcell.CursorStyleBlinkingUnderline)
+)

@@ -32,6 +32,11 @@ func Resume() error {
 	return tcellInit()
 }
 
+// Set the style of the cursor
+func setCursorStyle(style CursorStyle) {
+	screen.SetCursorStyle(style)
+}
+
 // tcellInitSimulation creates a tcell simulated screen for testing
 func tcellInitSimulation() error {
 	simScreen := tcell.NewSimulationScreen("UTF-8")
