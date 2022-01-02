@@ -32,7 +32,7 @@ func Resume() error {
 	return tcellInit()
 }
 
-// Set the style of the cursor
+// setCursorStyle sets the style of the cursor
 func setCursorStyle(style CursorStyle) {
 	screen.SetCursorStyle(style)
 }
