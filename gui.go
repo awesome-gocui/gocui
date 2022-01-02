@@ -928,7 +928,7 @@ func (g *Gui) execKeybindings(v *View, ev *gocuiEvent) (matched bool, err error)
 	return false, nil
 }
 
-// Set the style of the cursor
+// SetCursorStyle sets the style of the cursor
 func (g *Gui) SetCursorStyle(style CursorStyle) {
 	setCursorStyle(style)
 }
