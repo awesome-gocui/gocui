@@ -288,8 +288,12 @@ const (
 
 // Modifiers.
 const (
-	ModNone       Modifier = Modifier(0)
-	ModAlt                 = Modifier(tcell.ModAlt)
-	ModMouseShift          = Modifier(tcell.ModShift)
-	ModMouseCtrl           = Modifier(tcell.ModCtrl)
+	ModNone Modifier = Modifier(0)
+	ModAlt           = Modifier(tcell.ModAlt)
+
+	// ModShift only makes sense on keys that are not characters like the
+	// arrow keys and any mouse keys
+	// Character keys will instead be triggerd as their translated variant.
+	ModShift     = Modifier(tcell.ModShift)
+	ModMouseCtrl = Modifier(tcell.ModCtrl)
 )

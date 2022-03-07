@@ -149,17 +149,17 @@ func pollEvent() gocuiEvent {
 			ch = tev.Rune()
 			if ch == ' ' {
 				// special handling for spacebar
-				k = 32 // tcell keys ends at 31 or starts at 256
+				k = tcell.Key(KeySpace) // tcell keys ends at 31 or starts at 256
 				ch = rune(0)
 			}
 		}
 		mod := tev.Modifiers()
 		// remove control modifier and setup special handling of ctrl+spacebar, etc.
-		if mod == tcell.ModCtrl && k == 32 {
+		if mod == tcell.ModCtrl && k == tcell.Key(KeySpace) {
 			mod = 0
 			ch = rune(0)
 			k = tcell.KeyCtrlSpace
-		} else if mod == tcell.ModCtrl || mod == tcell.ModShift {
+		} else if mod == tcell.ModCtrl || mod == tcell.ModShift && (ch != 0 || k == tcell.Key(KeySpace)) {
 			// remove Ctrl or Shift if specified
 			// - shift - will be translated to the final code of rune
 			// - ctrl  - is translated in the key
@@ -174,7 +174,7 @@ func pollEvent() gocuiEvent {
 	case *tcell.EventMouse:
 		x, y := tev.Position()
 		button := tev.Buttons()
-		mouseKey := MouseRelease
+		mouseKey := Key(0)
 		mouseMod := ModNone
 		// process mouse wheel
 		if button&tcell.WheelUp != 0 {
@@ -199,19 +199,21 @@ func pollEvent() gocuiEvent {
 		if button != tcell.ButtonNone && lastMouseKey == tcell.ButtonNone {
 			lastMouseKey = button
 			lastMouseMod = tev.Modifiers()
+			switch tev.Buttons() {
+			case tcell.ButtonPrimary:
+				mouseKey = MouseLeft
+			case tcell.ButtonSecondary:
+				mouseKey = MouseRight
+			case tcell.ButtonMiddle:
+				mouseKey = MouseMiddle
+			}
+			mouseMod = Modifier(lastMouseMod)
 		}
 
 		switch tev.Buttons() {
 		case tcell.ButtonNone:
 			if lastMouseKey != tcell.ButtonNone {
-				switch lastMouseKey {
-				case tcell.ButtonPrimary:
-					mouseKey = MouseLeft
-				case tcell.ButtonSecondary:
-					mouseKey = MouseRight
-				case tcell.ButtonMiddle:
-					mouseKey = MouseMiddle
-				}
+				mouseKey = MouseRelease
 				mouseMod = Modifier(lastMouseMod)
 				lastMouseMod = tcell.ModNone
 				lastMouseKey = tcell.ButtonNone

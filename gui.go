@@ -76,6 +76,9 @@ type Gui struct {
 	testCounter int // used for testing synchronization
 	testNotify  chan struct{}
 
+	// The position of the mouse
+	mouseX, mouseY int
+
 	// BgColor and FgColor allow to configure the background and foreground
 	// colors of the GUI.
 	BgColor, FgColor, FrameColor Attribute
@@ -141,6 +144,7 @@ func NewGui(mode OutputMode, supportOverlaps bool) (*Gui, error) {
 		g.maxX, g.maxY = screen.Size()
 	}
 
+	g.mouseX, g.mouseY = -1, -1
 	g.BgColor, g.FgColor, g.FrameColor = ColorDefault, ColorDefault, ColorDefault
 	g.SelBgColor, g.SelFgColor, g.SelFrameColor = ColorDefault, ColorDefault, ColorDefault
 
@@ -163,6 +167,12 @@ func (g *Gui) Close() {
 // Size returns the terminal's size.
 func (g *Gui) Size() (x, y int) {
 	return g.maxX, g.maxY
+}
+
+// MousePosition returns the last position of the mouse.
+// If no mouse event was triggered yet MousePosition will return -1, -1.
+func (g *Gui) MousePosition() (x, y int) {
+	return g.mouseX, g.mouseY
 }
 
 // SetRune writes a rune at the given point, relative to the top-left
@@ -881,6 +891,8 @@ func (g *Gui) onKey(ev *gocuiEvent) error {
 		}
 	case eventMouse:
 		mx, my := ev.MouseX, ev.MouseY
+		g.mouseX = mx
+		g.mouseY = my
 		v, err := g.ViewByPosition(mx, my)
 		if err != nil {
 			break
