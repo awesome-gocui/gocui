@@ -11,7 +11,9 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func layout(g *gocui.Gui) error {
+type demoOverlap struct{}
+
+func (d *demoOverlap) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	if _, err := g.SetView("v1", -1, -1, 10, 10, 0); err != nil &&
 		!errors.Is(err, gocui.ErrUnknownView) {
@@ -56,20 +58,21 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoOverlap) quit(_ *gocui.Gui, _ *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func main() {
+func mainOverlap() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
-	g.SetManagerFunc(layout)
+	d := &demoOverlap{}
+	g.SetManagerFunc(d.layout)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
 

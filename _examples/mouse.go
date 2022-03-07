@@ -12,7 +12,9 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func main() {
+type demoMouse struct{}
+
+func mainMouse() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
@@ -22,9 +24,10 @@ func main() {
 	g.Cursor = false
 	g.Mouse = true
 
-	g.SetManagerFunc(layout)
+	d := demoMouse{}
+	g.SetManagerFunc(d.layout)
 
-	if err := keybindings(g); err != nil {
+	if err := d.keybindings(g); err != nil {
 		log.Panicln(err)
 	}
 
@@ -33,7 +36,7 @@ func main() {
 	}
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoMouse) layout(g *gocui.Gui) error {
 	if v, err := g.SetView("but1", 2, 2, 22, 7, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
@@ -41,10 +44,10 @@ func layout(g *gocui.Gui) error {
 		v.Highlight = true
 		v.SelBgColor = gocui.ColorGreen
 		v.SelFgColor = gocui.ColorBlack
-		fmt.Fprintln(v, "Button 1 - line 1")
-		fmt.Fprintln(v, "Button 1 - line 2")
-		fmt.Fprintln(v, "Button 1 - line 3")
-		fmt.Fprintln(v, "Button 1 - line 4")
+		_, _ = fmt.Fprintln(v, "Button 1 - line 1")
+		_, _ = fmt.Fprintln(v, "Button 1 - line 2")
+		_, _ = fmt.Fprintln(v, "Button 1 - line 3")
+		_, _ = fmt.Fprintln(v, "Button 1 - line 4")
 		if _, err := g.SetCurrentView("but1"); err != nil {
 			return err
 		}
@@ -56,37 +59,37 @@ func layout(g *gocui.Gui) error {
 		v.Highlight = true
 		v.SelBgColor = gocui.ColorGreen
 		v.SelFgColor = gocui.ColorBlack
-		fmt.Fprintln(v, "Button 2 - line 1")
+		_, _ = fmt.Fprintln(v, "Button 2 - line 1")
 	}
 	return nil
 }
 
-func keybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+func (d *demoMouse) keybindings(g *gocui.Gui) error {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		return err
 	}
 	for _, n := range []string{"but1", "but2"} {
-		if err := g.SetKeybinding(n, gocui.MouseLeft, gocui.ModNone, showMsg); err != nil {
+		if err := g.SetKeybinding(n, gocui.MouseLeft, gocui.ModNone, d.showMsg); err != nil {
 			return err
 		}
 	}
-	if err := g.SetKeybinding("msg", gocui.MouseLeft, gocui.ModNone, delMsg); err != nil {
+	if err := g.SetKeybinding("msg", gocui.MouseLeft, gocui.ModNone, d.delMsg); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.MouseRight, gocui.ModNone, delMsg); err != nil {
+	if err := g.SetKeybinding("", gocui.MouseRight, gocui.ModNone, d.delMsg); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.MouseMiddle, gocui.ModNone, delMsg); err != nil {
+	if err := g.SetKeybinding("", gocui.MouseMiddle, gocui.ModNone, d.delMsg); err != nil {
 		return err
 	}
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoMouse) quit(_ *gocui.Gui, _ *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func showMsg(g *gocui.Gui, v *gocui.View) error {
+func (d *demoMouse) showMsg(g *gocui.Gui, v *gocui.View) error {
 	var l string
 	var err error
 
@@ -104,13 +107,13 @@ func showMsg(g *gocui.Gui, v *gocui.View) error {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
-		fmt.Fprintln(v, l)
+		_, _ = fmt.Fprintln(v, l)
 	}
 	return nil
 }
 
-func delMsg(g *gocui.Gui, v *gocui.View) error {
+func (d *demoMouse) delMsg(g *gocui.Gui, _ *gocui.View) error {
 	// Error check removed, because delete could be called multiple times with the above keybindings
-	g.DeleteView("msg")
+	_ = g.DeleteView("msg")
 	return nil
 }

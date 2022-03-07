@@ -8,10 +8,10 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-var (
-	viewArr = []string{"v1", "v2", "v3", "v4"}
-	active  = 0
-)
+type demoCustomFrames struct {
+	viewArr []string
+	active  int
+}
 
 func setCurrentViewOnTop(g *gocui.Gui, name string) (*gocui.View, error) {
 	if _, err := g.SetCurrentView(name); err != nil {
@@ -20,15 +20,15 @@ func setCurrentViewOnTop(g *gocui.Gui, name string) (*gocui.View, error) {
 	return g.SetViewOnTop(name)
 }
 
-func nextView(g *gocui.Gui, v *gocui.View) error {
-	nextIndex := (active + 1) % len(viewArr)
-	name := viewArr[nextIndex]
+func (d *demoCustomFrames) nextView(g *gocui.Gui, v *gocui.View) error {
+	nextIndex := (d.active + 1) % len(d.viewArr)
+	name := d.viewArr[nextIndex]
 
 	out, err := g.View("v1")
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(out, "Going from view "+v.Name()+" to "+name)
+	_, _ = fmt.Fprintln(out, "Going from view "+v.Name()+" to "+name)
 
 	if _, err := setCurrentViewOnTop(g, name); err != nil {
 		return err
@@ -40,11 +40,11 @@ func nextView(g *gocui.Gui, v *gocui.View) error {
 		g.Cursor = false
 	}
 
-	active = nextIndex
+	d.active = nextIndex
 	return nil
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoCustomFrames) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	if v, err := g.SetView("v1", 0, 0, maxX/2-1, maxY/2-1, gocui.RIGHT); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -52,8 +52,8 @@ func layout(g *gocui.Gui) error {
 		}
 		v.Title = "v1"
 		v.Autoscroll = true
-		fmt.Fprintln(v, "View with default frame color")
-		fmt.Fprintln(v, "It's connected to v2 with overlay RIGHT.\n")
+		_, _ = fmt.Fprintln(v, "View with default frame color")
+		_, _ = fmt.Fprintln(v, "It's connected to v2 with overlay RIGHT.\n")
 		if _, err = setCurrentViewOnTop(g, "v1"); err != nil {
 			return err
 		}
@@ -67,12 +67,12 @@ func layout(g *gocui.Gui) error {
 		v.Wrap = true
 		v.FrameColor = gocui.ColorMagenta
 		v.FrameRunes = []rune{'═', '│'}
-		fmt.Fprintln(v, "View with minimum frame customization and colored frame.")
-		fmt.Fprintln(v, "It's connected to v1 with overlay LEFT.\n")
-		fmt.Fprintln(v, "\033[35;1mInstructions:\033[0m")
-		fmt.Fprintln(v, "Press TAB to change current view")
-		fmt.Fprintln(v, "Press Ctrl+O to toggle gocui.SupportOverlap\n")
-		fmt.Fprintln(v, "\033[32;2mSelected frame is highlighted with green color\033[0m")
+		_, _ = fmt.Fprintln(v, "View with minimum frame customization and colored frame.")
+		_, _ = fmt.Fprintln(v, "It's connected to v1 with overlay LEFT.\n")
+		_, _ = fmt.Fprintln(v, "\033[35;1mInstructions:\033[0m")
+		_, _ = fmt.Fprintln(v, "Press TAB to change current view")
+		_, _ = fmt.Fprintln(v, "Press Ctrl+O to toggle gocui.SupportOverlap\n")
+		_, _ = fmt.Fprintln(v, "\033[32;2mSelected frame is highlighted with green color\033[0m")
 	}
 	if v, err := g.SetView("v3", 0, maxY/2, maxX/2-1, maxY-1, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -84,8 +84,8 @@ func layout(g *gocui.Gui) error {
 		v.FrameColor = gocui.ColorCyan
 		v.TitleColor = gocui.ColorCyan
 		v.FrameRunes = []rune{'═', '║', '╔', '╗', '╚', '╝'}
-		fmt.Fprintln(v, "View with basic frame customization and colored frame and title")
-		fmt.Fprintln(v, "It's not connected to any view.")
+		_, _ = fmt.Fprintln(v, "View with basic frame customization and colored frame and title")
+		_, _ = fmt.Fprintln(v, "It's not connected to any view.")
 	}
 	if v, err := g.SetView("v4", maxX/2, maxY/2, maxX-1, maxY-1, gocui.LEFT); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -97,23 +97,26 @@ func layout(g *gocui.Gui) error {
 		v.TitleColor = gocui.ColorYellow
 		v.FrameColor = gocui.ColorRed
 		v.FrameRunes = []rune{'═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬'}
-		fmt.Fprintln(v, "View with fully customized frame and colored title differently.")
-		fmt.Fprintln(v, "It's connected to v3 with overlay LEFT.\n")
-		v.SetCursor(0, 3)
+		_, _ = fmt.Fprintln(v, "View with fully customized frame and colored title differently.")
+		_, _ = fmt.Fprintln(v, "It's connected to v3 with overlay LEFT.\n")
+		_ = v.SetCursor(0, 3)
 	}
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoCustomFrames) quit(g *gocui.Gui, v *gocui.View) error {
+	_ = g
+	_ = v
 	return gocui.ErrQuit
 }
 
-func toggleOverlap(g *gocui.Gui, v *gocui.View) error {
+func (d *demoCustomFrames) toggleOverlap(g *gocui.Gui, v *gocui.View) error {
+	_ = v
 	g.SupportOverlaps = !g.SupportOverlaps
 	return nil
 }
 
-func main() {
+func mainCustomFrames() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
@@ -124,15 +127,19 @@ func main() {
 	g.SelFgColor = gocui.ColorGreen
 	g.SelFrameColor = gocui.ColorGreen
 
-	g.SetManagerFunc(layout)
+	d := &demoCustomFrames{
+		viewArr: []string{"v1", "v2", "v3", "v4"},
+		active:  0,
+	}
+	g.SetManagerFunc(d.layout)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
-	if err := g.SetKeybinding("", gocui.KeyCtrlO, gocui.ModNone, toggleOverlap); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlO, gocui.ModNone, d.toggleOverlap); err != nil {
 		log.Panicln(err)
 	}
-	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, nextView); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, d.nextView); err != nil {
 		log.Panicln(err)
 	}
 

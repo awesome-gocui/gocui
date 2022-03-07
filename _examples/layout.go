@@ -11,7 +11,9 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func layout(g *gocui.Gui) error {
+type demoLayout struct{}
+
+func (d *demoLayout) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	if _, err := g.SetView("side", -1, -1, int(0.2*float32(maxX)), maxY-5, 0); err != nil && !errors.Is(err, gocui.ErrUnknownView) {
 		return err
@@ -21,7 +23,7 @@ func layout(g *gocui.Gui) error {
 			return err
 		}
 
-		g.SetCurrentView("main")
+		_, _ = g.SetCurrentView("main")
 	}
 	if _, err := g.SetView("cmdline", -1, maxY-5, maxX, maxY, 0); err != nil && !errors.Is(err, gocui.ErrUnknownView) {
 		return err
@@ -30,20 +32,21 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoLayout) quit(_ *gocui.Gui, _ *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func main() {
+func mainLayout() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
-	g.SetManagerFunc(layout)
+	d := &demoLayout{}
+	g.SetManagerFunc(d.layout)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
 

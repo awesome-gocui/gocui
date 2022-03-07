@@ -12,16 +12,21 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func main() {
+type demoColors struct {
+}
+
+func mainColors() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
-	g.SetManagerFunc(layout)
+	d := &demoColors{}
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	g.SetManagerFunc(d.layout)
+
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
 
@@ -30,7 +35,7 @@ func main() {
 	}
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoColors) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	if v, err := g.SetView("colors", maxX/2-7, maxY/2-12, maxX/2+7, maxY/2+13, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -48,6 +53,6 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoColors) quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }

@@ -11,16 +11,19 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func main() {
+type demoTitle struct{}
+
+func mainTitle() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
-	g.SetManagerFunc(layout)
+	d := &demoTitle{}
+	g.SetManagerFunc(d.layout)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
 
@@ -29,11 +32,11 @@ func main() {
 	}
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoTitle) quit(_ *gocui.Gui, _ *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoTitle) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 
 	// Overlap (front)

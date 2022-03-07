@@ -7,15 +7,18 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
+type demoKeybinds struct {
+}
+
 // layout generates the view
-func layout(g *gocui.Gui) error {
+func (d *demoKeybinds) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	if v, err := g.SetView("hello", maxX/2-7, maxY/2, maxX/2+7, maxY/2+2, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
 
-		v.Write([]byte("Hello"))
+		_, _ = v.Write([]byte("Hello"))
 
 		if _, err := g.SetCurrentView("hello"); err != nil {
 			return err
@@ -26,11 +29,11 @@ func layout(g *gocui.Gui) error {
 }
 
 // quit stops the gui
-func quit(_ *gocui.Gui, _ *gocui.View) error {
+func (d *demoKeybinds) quit(_ *gocui.Gui, _ *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func main() {
+func mainKeybinds() {
 	// Create a gui
 	g, err := gocui.NewGui(gocui.OutputNormal, false)
 	if err != nil {
@@ -38,8 +41,9 @@ func main() {
 	}
 	defer g.Close()
 
+	d := &demoKeybinds{}
 	// Add a manager function
-	g.SetManagerFunc(layout)
+	g.SetManagerFunc(d.layout)
 
 	// This will set up the recovery for MustParse
 	defer func() {
@@ -50,7 +54,7 @@ func main() {
 
 	// The MustParse can panic, but only returns 2 values instead of 3
 	keyForced, modForced := gocui.MustParse("q")
-	if err := g.SetKeybinding("", keyForced, modForced, quit); err != nil {
+	if err := g.SetKeybinding("", keyForced, modForced, d.quit); err != nil {
 		log.Panicln(err)
 	}
 
@@ -72,7 +76,7 @@ func main() {
 		log.Panicln(err)
 	}
 
-	if err = g.SetKeybinding("", keyNormal, modNormal, quit); err != nil {
+	if err = g.SetKeybinding("", keyNormal, modNormal, d.quit); err != nil {
 		log.Panicln(err)
 	}
 

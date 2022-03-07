@@ -12,7 +12,9 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func main() {
+type demoColors256 struct{}
+
+func mainColors256() {
 	g, err := gocui.NewGui(gocui.Output256, true)
 
 	if err != nil {
@@ -20,9 +22,10 @@ func main() {
 	}
 	defer g.Close()
 
-	g.SetManagerFunc(layout)
+	d := demoColors256{}
+	g.SetManagerFunc(d.layout)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
 
@@ -31,7 +34,7 @@ func main() {
 	}
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoColors256) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	if v, err := g.SetView("colors", -1, -1, maxX, maxY, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -47,10 +50,10 @@ func layout(g *gocui.Gui) error {
 				str += "\n"
 			}
 
-			fmt.Fprint(v, str)
+			_, _ = fmt.Fprint(v, str)
 		}
 
-		fmt.Fprint(v, "\n\n")
+		_, _ = fmt.Fprint(v, "\n\n")
 
 		// 8-colors escape codes
 		ctr := 0
@@ -61,7 +64,7 @@ func layout(g *gocui.Gui) error {
 					str += "\n"
 				}
 
-				fmt.Fprint(v, str)
+				_, _ = fmt.Fprint(v, str)
 
 				ctr++
 			}
@@ -73,6 +76,8 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoColors256) quit(g *gocui.Gui, v *gocui.View) error {
+	_ = g
+	_ = v
 	return gocui.ErrQuit
 }

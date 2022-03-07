@@ -12,16 +12,19 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func main() {
+type demoOnTop struct{}
+
+func mainOntop() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
-	g.SetManagerFunc(layout)
+	d := &demoOnTop{}
+	g.SetManagerFunc(d.layout)
 
-	if err := keybindings(g); err != nil {
+	if err := d.keybindings(g); err != nil {
 		log.Panicln(err)
 	}
 
@@ -30,24 +33,24 @@ func main() {
 	}
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoOnTop) layout(g *gocui.Gui) error {
 	if v, err := g.SetView("v1", 10, 2, 30, 6, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
-		fmt.Fprintln(v, "View #1")
+		_, _ = fmt.Fprintln(v, "View #1")
 	}
 	if v, err := g.SetView("v2", 20, 4, 40, 8, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
-		fmt.Fprintln(v, "View #2")
+		_, _ = fmt.Fprintln(v, "View #2")
 	}
 	if v, err := g.SetView("v3", 30, 6, 50, 10, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
-		fmt.Fprintln(v, "View #3")
+		_, _ = fmt.Fprintln(v, "View #3")
 		if _, err := g.SetCurrentView("v3"); err != nil {
 			return err
 		}
@@ -56,7 +59,7 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func keybindings(g *gocui.Gui) error {
+func (d *demoOnTop) keybindings(g *gocui.Gui) error {
 	err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		return gocui.ErrQuit
 	})

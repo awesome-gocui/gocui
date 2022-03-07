@@ -12,16 +12,19 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func main() {
+type demoSize struct{}
+
+func mainSize() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
-	g.SetManagerFunc(layout)
+	d := &demoSize{}
+	g.SetManagerFunc(d.layout)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
 
@@ -30,7 +33,7 @@ func main() {
 	}
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoSize) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	v, err := g.SetView("size", maxX/2-7, maxY/2, maxX/2+7, maxY/2+2, 0)
 	if err != nil {
@@ -42,10 +45,10 @@ func layout(g *gocui.Gui) error {
 		}
 	}
 	v.Clear()
-	fmt.Fprintf(v, "%d, %d", maxX, maxY)
+	_, _ = fmt.Fprintf(v, "%d, %d", maxX, maxY)
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoSize) quit(_ *gocui.Gui, _ *gocui.View) error {
 	return gocui.ErrQuit
 }

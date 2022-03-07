@@ -14,43 +14,47 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-const NumGoroutines = 20
+type demoGoRoutine struct {
+	numGoroutines int
+	done          chan struct{}
+	wg            sync.WaitGroup
+	mu            sync.Mutex // protects ctr
+	ctr           int
+}
 
-var (
-	done = make(chan struct{})
-	wg   sync.WaitGroup
-
-	mu  sync.Mutex // protects ctr
-	ctr = 0
-)
-
-func main() {
+func mainGoroutine() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
-	g.SetManagerFunc(layout)
+	d := &demoGoRoutine{
+		numGoroutines: 20,
+		done:          make(chan struct{}),
+		ctr:           0,
+	}
 
-	if err := keybindings(g); err != nil {
+	g.SetManagerFunc(d.layout)
+
+	if err := d.keybindings(g); err != nil {
 		log.Panicln(err)
 	}
 
-	for i := 0; i < NumGoroutines; i++ {
-		wg.Add(1)
-		go counter(g)
+	for i := 0; i < d.numGoroutines; i++ {
+		d.wg.Add(1)
+		go d.counter(g)
 	}
 
 	if err := g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
 		log.Panicln(err)
 	}
 
-	wg.Wait()
+	d.wg.Wait()
 }
 
-func layout(g *gocui.Gui) error {
-	if v, err := g.SetView("ctr", 2, 2, 22, 2+NumGoroutines+1, 0); err != nil {
+func (d *demoGoRoutine) layout(g *gocui.Gui) error {
+	if v, err := g.SetView("ctr", 2, 2, 22, 2+d.numGoroutines+1, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
@@ -62,30 +66,32 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func keybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+func (d *demoGoRoutine) keybindings(g *gocui.Gui) error {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		return err
 	}
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
-	close(done)
+func (d *demoGoRoutine) quit(g *gocui.Gui, v *gocui.View) error {
+	_ = g
+	_ = v
+	close(d.done)
 	return gocui.ErrQuit
 }
 
-func counter(g *gocui.Gui) {
-	defer wg.Done()
+func (d *demoGoRoutine) counter(g *gocui.Gui) {
+	defer d.wg.Done()
 
 	for {
 		select {
-		case <-done:
+		case <-d.done:
 			return
 		case <-time.After(500 * time.Millisecond):
-			mu.Lock()
-			n := ctr
-			ctr++
-			mu.Unlock()
+			d.mu.Lock()
+			n := d.ctr
+			d.ctr++
+			d.mu.Unlock()
 
 			g.Update(func(g *gocui.Gui) error {
 				v, err := g.View("ctr")
@@ -94,13 +100,13 @@ func counter(g *gocui.Gui) {
 				}
 				// use ctr to make it more chaotic
 				// "pseudo-randomly" print in one of two columns (x = 0, and x = 10)
-				x := (ctr / NumGoroutines) & 1
+				x := (d.ctr / d.numGoroutines) & 1
 				if x != 0 {
 					x = 10
 				}
-				y := ctr % NumGoroutines
-				v.SetWritePos(x, y)
-				fmt.Fprintln(v, n)
+				y := d.ctr % d.numGoroutines
+				_ = v.SetWritePos(x, y)
+				_, _ = fmt.Fprintln(v, n)
 				return nil
 			})
 		}

@@ -11,6 +11,8 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
+type demoTable struct{}
+
 type Column struct {
 	Title string
 	Size  float32
@@ -45,15 +47,15 @@ func (t *Table) Layout(g *gocui.Gui) error {
 	for cid, column := range t.Columns {
 		size := int(float32(width+1) * column.Size)
 
-		view.SetWritePos(hOffset, 0)
+		_ = view.SetWritePos(hOffset, 0)
 		view.WriteString(column.Title)
 
 		for rid := 0; rid < height; rid++ {
 			if rid < len(t.Data[cid]) {
-				view.SetWritePos(hOffset, rid+1)
+				_ = view.SetWritePos(hOffset, rid+1)
 				view.WriteString(t.Data[cid][rid])
 			}
-			view.SetWritePos(hOffset+size-1, rid)
+			_ = view.SetWritePos(hOffset+size-1, rid)
 			view.WriteRunes([]rune{'│'})
 		}
 
@@ -63,12 +65,13 @@ func (t *Table) Layout(g *gocui.Gui) error {
 	return nil
 }
 
-func main() {
+func mainTable() {
 	g, err := gocui.NewGui(gocui.OutputNormal, false)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
+	d := &demoTable{}
 
 	table := NewTable("t", 0, 2, 80, 10)
 	table.Columns = []Column{
@@ -85,7 +88,7 @@ func main() {
 	}
 	g.SetManager(table)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
 
@@ -94,6 +97,6 @@ func main() {
 	}
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoTable) quit(_ *gocui.Gui, _ *gocui.View) error {
 	return gocui.ErrQuit
 }

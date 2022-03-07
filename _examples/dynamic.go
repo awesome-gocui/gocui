@@ -13,15 +13,14 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-const delta = 1
+type demoDynamic struct {
+	views   []string
+	curView int
+	idxView int
+	delta   int
+}
 
-var (
-	views   = []string{}
-	curView = -1
-	idxView = 0
-)
-
-func main() {
+func mainDynamic() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
@@ -32,12 +31,18 @@ func main() {
 	g.SelFgColor = gocui.ColorRed
 	g.SelFrameColor = gocui.ColorRed
 
-	g.SetManagerFunc(layout)
+	d := &demoDynamic{
+		views:   []string{},
+		curView: -1,
+		idxView: 0,
+		delta:   1,
+	}
+	g.SetManagerFunc(d.layout)
 
-	if err := initKeybindings(g); err != nil {
+	if err := d.initKeybindings(g); err != nil {
 		log.Panicln(err)
 	}
-	if err := newView(g); err != nil {
+	if err := d.newView(g); err != nil {
 		log.Panicln(err)
 	}
 
@@ -46,26 +51,26 @@ func main() {
 	}
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoDynamic) layout(g *gocui.Gui) error {
 	maxX, _ := g.Size()
 	v, err := g.SetView("help", maxX-25, 0, maxX-1, 9, 0)
 	if err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
-		fmt.Fprintln(v, "KEYBINDINGS")
-		fmt.Fprintln(v, "Space: New View")
-		fmt.Fprintln(v, "Tab: Next View")
-		fmt.Fprintln(v, "← ↑ → ↓: Move View")
-		fmt.Fprintln(v, "Backspace: Delete View")
-		fmt.Fprintln(v, "t: Set view on top")
-		fmt.Fprintln(v, "b: Set view on bottom")
-		fmt.Fprintln(v, "^C: Exit")
+		_, _ = fmt.Fprintln(v, "KEYBINDINGS")
+		_, _ = fmt.Fprintln(v, "Space: New View")
+		_, _ = fmt.Fprintln(v, "Tab: Next View")
+		_, _ = fmt.Fprintln(v, "← ↑ → ↓: Move View")
+		_, _ = fmt.Fprintln(v, "Backspace: Delete View")
+		_, _ = fmt.Fprintln(v, "t: Set view on top")
+		_, _ = fmt.Fprintln(v, "b: Set view on bottom")
+		_, _ = fmt.Fprintln(v, "^C: Exit")
 	}
 	return nil
 }
 
-func initKeybindings(g *gocui.Gui) error {
+func (d *demoDynamic) initKeybindings(g *gocui.Gui) error {
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return gocui.ErrQuit
@@ -74,62 +79,62 @@ func initKeybindings(g *gocui.Gui) error {
 	}
 	if err := g.SetKeybinding("", gocui.KeySpace, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			return newView(g)
+			return d.newView(g)
 		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", gocui.KeyBackspace, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			return delView(g)
+			return d.delView(g)
 		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", gocui.KeyBackspace2, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			return delView(g)
+			return d.delView(g)
 		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			return nextView(g, true)
+			return d.nextView(g, true)
 		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", gocui.KeyArrowLeft, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			return moveView(g, v, -delta, 0)
+			return moveView(g, v, -d.delta, 0)
 		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", gocui.KeyArrowRight, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			return moveView(g, v, delta, 0)
+			return moveView(g, v, d.delta, 0)
 		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			return moveView(g, v, 0, delta)
+			return moveView(g, v, 0, d.delta)
 		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			return moveView(g, v, 0, -delta)
+			return moveView(g, v, 0, -d.delta)
 		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", 't', gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			_, err := g.SetViewOnTop(views[curView])
+			_, err := g.SetViewOnTop(d.views[d.curView])
 			return err
 		}); err != nil {
 		return err
 	}
 	if err := g.SetKeybinding("", 'b', gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			_, err := g.SetViewOnBottom(views[curView])
+			_, err := g.SetViewOnBottom(d.views[d.curView])
 			return err
 		}); err != nil {
 		return err
@@ -137,51 +142,52 @@ func initKeybindings(g *gocui.Gui) error {
 	return nil
 }
 
-func newView(g *gocui.Gui) error {
+func (d *demoDynamic) newView(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
-	name := fmt.Sprintf("v%v", idxView)
+	name := fmt.Sprintf("v%v", d.idxView)
 	v, err := g.SetView(name, maxX/2-5, maxY/2-5, maxX/2+5, maxY/2+5, 0)
 	if err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
 		v.Wrap = true
-		fmt.Fprintln(v, strings.Repeat(name+" ", 30))
+		_, _ = fmt.Fprintln(v, strings.Repeat(name+" ", 30))
 	}
 	if _, err := g.SetCurrentView(name); err != nil {
 		return err
 	}
 
-	views = append(views, name)
-	curView = len(views) - 1
-	idxView += 1
+	d.views = append(d.views, name)
+	d.curView = len(d.views) - 1
+	d.idxView += 1
 	return nil
 }
 
-func delView(g *gocui.Gui) error {
-	if len(views) <= 1 {
+func (d *demoDynamic) delView(g *gocui.Gui) error {
+	if len(d.views) <= 1 {
 		return nil
 	}
 
-	if err := g.DeleteView(views[curView]); err != nil {
+	if err := g.DeleteView(d.views[d.curView]); err != nil {
 		return err
 	}
-	views = append(views[:curView], views[curView+1:]...)
+	d.views = append(d.views[:d.curView], d.views[d.curView+1:]...)
 
-	return nextView(g, false)
+	return d.nextView(g, false)
 }
 
-func nextView(g *gocui.Gui, disableCurrent bool) error {
-	next := curView + 1
-	if next > len(views)-1 {
+func (d *demoDynamic) nextView(g *gocui.Gui, disableCurrent bool) error {
+	_ = disableCurrent
+	next := d.curView + 1
+	if next > len(d.views)-1 {
 		next = 0
 	}
 
-	if _, err := g.SetCurrentView(views[next]); err != nil {
+	if _, err := g.SetCurrentView(d.views[next]); err != nil {
 		return err
 	}
 
-	curView = next
+	d.curView = next
 	return nil
 }
 

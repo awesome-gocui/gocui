@@ -14,20 +14,22 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-var vbuf, buf string
+type demoBufs struct {
+	vbuf, buf string
+}
 
-func quit(g *gocui.Gui, v *gocui.View) error {
-	vbuf = v.ViewBuffer()
-	buf = v.Buffer()
+func (d *demoBufs) quit(g *gocui.Gui, v *gocui.View) error {
+	d.vbuf = v.ViewBuffer()
+	d.buf = v.Buffer()
 	return gocui.ErrQuit
 }
 
-func overwrite(g *gocui.Gui, v *gocui.View) error {
+func (d *demoBufs) overwrite(g *gocui.Gui, v *gocui.View) error {
 	v.Overwrite = !v.Overwrite
 	return nil
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoBufs) layout(g *gocui.Gui) error {
 	_, maxY := g.Size()
 	if v, err := g.SetView("main", 0, 0, 20, maxY-1, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -42,21 +44,23 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func main() {
+func mainBufs() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 
+	d := &demoBufs{}
+
 	g.Cursor = true
 	g.Mouse = true
 
-	g.SetManagerFunc(layout)
+	g.SetManagerFunc(d.layout)
 
-	if err := g.SetKeybinding("main", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("main", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
-	if err := g.SetKeybinding("main", gocui.KeyCtrlI, gocui.ModNone, overwrite); err != nil {
+	if err := g.SetKeybinding("main", gocui.KeyCtrlI, gocui.ModNone, d.overwrite); err != nil {
 		log.Panicln(err)
 	}
 
@@ -66,6 +70,6 @@ func main() {
 
 	g.Close()
 
-	fmt.Printf("VBUF:\n%s\n", vbuf)
-	fmt.Printf("BUF:\n%s\n", buf)
+	fmt.Printf("VBUF:\n%s\n", d.vbuf)
+	fmt.Printf("BUF:\n%s\n", d.buf)
 }

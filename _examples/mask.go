@@ -12,7 +12,9 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func main() {
+type demoMask struct{}
+
+func mainMask() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Fatalln(err)
@@ -21,9 +23,10 @@ func main() {
 
 	g.Cursor = true
 
-	g.SetManagerFunc(layout)
+	d := &demoMask{}
+	g.SetManagerFunc(d.layout)
 
-	if err := initKeybindings(g); err != nil {
+	if err := d.initKeybindings(g); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -32,7 +35,7 @@ func main() {
 	}
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoMask) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 
 	if v, err := g.SetView("help", maxX-23, 0, maxX-1, 3, 0); err != nil {
@@ -40,8 +43,8 @@ func layout(g *gocui.Gui) error {
 			return err
 		}
 		v.Title = "Keybindings"
-		fmt.Fprintln(v, "^a: Set mask")
-		fmt.Fprintln(v, "^c: Exit")
+		_, _ = fmt.Fprintln(v, "^a: Set mask")
+		_, _ = fmt.Fprintln(v, "^c: Exit")
 	}
 
 	if v, err := g.SetView("input", 0, 0, maxX-24, maxY-1, 0); err != nil {
@@ -58,7 +61,7 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func initKeybindings(g *gocui.Gui) error {
+func (d *demoMask) initKeybindings(g *gocui.Gui) error {
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			return gocui.ErrQuit
