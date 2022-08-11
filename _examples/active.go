@@ -12,21 +12,21 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-var (
-	viewArr = []string{"v1", "v2", "v3", "v4"}
-	active  = 0
-)
+type demoActive struct {
+	viewArr []string
+	active  int
+}
 
-func setCurrentViewOnTop(g *gocui.Gui, name string) (*gocui.View, error) {
+func (d *demoActive) setCurrentViewOnTop(g *gocui.Gui, name string) (*gocui.View, error) {
 	if _, err := g.SetCurrentView(name); err != nil {
 		return nil, err
 	}
 	return g.SetViewOnTop(name)
 }
 
-func nextView(g *gocui.Gui, v *gocui.View) error {
-	nextIndex := (active + 1) % len(viewArr)
-	name := viewArr[nextIndex]
+func (d *demoActive) nextView(g *gocui.Gui, v *gocui.View) error {
+	nextIndex := (d.active + 1) % len(d.viewArr)
+	name := d.viewArr[nextIndex]
 
 	out, err := g.View("v2")
 	if err != nil {
@@ -34,7 +34,7 @@ func nextView(g *gocui.Gui, v *gocui.View) error {
 	}
 	fmt.Fprintln(out, "Going from view "+v.Name()+" to "+name)
 
-	if _, err := setCurrentViewOnTop(g, name); err != nil {
+	if _, err := d.setCurrentViewOnTop(g, name); err != nil {
 		return err
 	}
 
@@ -44,11 +44,11 @@ func nextView(g *gocui.Gui, v *gocui.View) error {
 		g.Cursor = false
 	}
 
-	active = nextIndex
+	d.active = nextIndex
 	return nil
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoActive) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	if v, err := g.SetView("v1", 0, 0, maxX/2-1, maxY/2-1, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -58,7 +58,7 @@ func layout(g *gocui.Gui) error {
 		v.Editable = true
 		v.Wrap = true
 
-		if _, err = setCurrentViewOnTop(g, "v1"); err != nil {
+		if _, err = d.setCurrentViewOnTop(g, "v1"); err != nil {
 			return err
 		}
 	}
@@ -90,11 +90,15 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoActive) quit(*gocui.Gui, *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func main() {
+func mainActive() {
+	d := &demoActive{
+		viewArr: []string{"v1", "v2", "v3", "v4"},
+		active:  0,
+	}
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
@@ -105,12 +109,12 @@ func main() {
 	g.Cursor = true
 	g.SelFgColor = gocui.ColorGreen
 
-	g.SetManagerFunc(layout)
+	g.SetManagerFunc(d.layout)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
-	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, nextView); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, d.nextView); err != nil {
 		log.Panicln(err)
 	}
 

@@ -30,7 +30,4 @@ jobs:
       - name: Build
         run: |
           cd _examples/
-          for file in *.go
-          do
-            go build $file
-          done
+          go build .
