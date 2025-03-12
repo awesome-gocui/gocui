@@ -117,7 +117,7 @@ type View struct {
 	// If Frame is true, Title allows to configure a title for the view.
 	Title string
 
-	// TitleColor allow to configure the color of title and subtitle for the view.
+	// TitleColor overrides the color of title and subtitle for the view with a single color.
 	TitleColor Attribute
 
 	// If Frame is true, Subtitle allows to configure a subtitle for the view.
