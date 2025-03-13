@@ -805,8 +805,8 @@ func (g *Gui) drawTitle(v *View, fgColor, bgColor Attribute) error {
 		return nil
 	}
 
+	// Rebuild the title as []cell by parsing the foreground/background ANSI color codes
 	var cells []cell
-
 	for i, ch := range v.Title {
 		x := v.x0 + i + 2
 		if x < 0 {
@@ -859,8 +859,8 @@ func (g *Gui) drawSubtitle(v *View, fgColor, bgColor Attribute) error {
 		return nil
 	}
 
+	// Rebuild the subtitle as []cell by parsing the foreground/background ANSI color codes
 	var cells []cell
-
 	for i, ch := range v.Subtitle {
 		x := start + i
 		if x >= v.x1 {
