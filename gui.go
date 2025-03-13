@@ -873,6 +873,9 @@ func (g *Gui) drawSubtitle(v *View, fgColor, bgColor Attribute) error {
 		cells = append(cells, c...)
 	}
 
+	// Update the start location for the subtitle after parsing any ANSI color codes
+	start = v.x1 - 5 - len(cells)
+
 	for i, c := range cells {
 		x := start + i
 		if x >= v.x1 {
