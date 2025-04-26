@@ -65,6 +65,7 @@ See the [\_example](./_example/) folder for more examples
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
