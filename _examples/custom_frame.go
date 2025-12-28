@@ -52,6 +52,7 @@ func layout(g *gocui.Gui) error {
 		}
 		v.Title = "v1"
 		v.Autoscroll = true
+		v.PaddingX = 1
 		fmt.Fprintln(v, "View with default frame color")
 		fmt.Fprintln(v, "It's connected to v2 with overlay RIGHT.\n")
 		if _, err = setCurrentViewOnTop(g, "v1"); err != nil {
@@ -67,6 +68,7 @@ func layout(g *gocui.Gui) error {
 		v.Wrap = true
 		v.FrameColor = gocui.ColorMagenta
 		v.FrameRunes = []rune{'═', '│'}
+		v.PaddingX = 1
 		fmt.Fprintln(v, "View with minimum frame customization and colored frame.")
 		fmt.Fprintln(v, "It's connected to v1 with overlay LEFT.\n")
 		fmt.Fprintln(v, "\033[35;1mInstructions:\033[0m")
@@ -84,6 +86,7 @@ func layout(g *gocui.Gui) error {
 		v.FrameColor = gocui.ColorCyan
 		v.TitleColor = gocui.ColorCyan
 		v.FrameRunes = []rune{'═', '║', '╔', '╗', '╚', '╝'}
+		v.PaddingX = 1
 		fmt.Fprintln(v, "View with basic frame customization and colored frame and title")
 		fmt.Fprintln(v, "It's not connected to any view.")
 	}
@@ -97,6 +100,7 @@ func layout(g *gocui.Gui) error {
 		v.TitleColor = gocui.ColorYellow
 		v.FrameColor = gocui.ColorRed
 		v.FrameRunes = []rune{'═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬'}
+		v.PaddingX = 1
 		fmt.Fprintln(v, "View with fully customized frame and colored title differently.")
 		fmt.Fprintln(v, "It's connected to v3 with overlay LEFT.\n")
 		v.SetCursor(0, 3)
