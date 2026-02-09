@@ -105,6 +105,12 @@ type View struct {
 	//  []rune{'═','║','╔','╗','╚','╝','╠','╣','╦','╩','╬'}
 	FrameRunes []rune
 
+	// PaddingX specifies the horizontal padding (left and right) inside the frame.
+	PaddingX int
+
+	// PaddingY specifies the vertical padding (top and bottom) inside the frame.
+	PaddingY int
+
 	// If Wrap is true, the content that is written to this View is
 	// automatically wrapped when it is longer than its width. If true the
 	// view's x-origin will be ignored.
@@ -193,7 +199,7 @@ func (v *View) Dimensions() (int, int, int, int) {
 
 // Size returns the number of visible columns and rows in the View.
 func (v *View) Size() (x, y int) {
-	return v.x1 - v.x0 - 1, v.y1 - v.y0 - 1
+	return v.x1 - v.x0 - 1 - 2*v.PaddingX, v.y1 - v.y0 - 1 - 2*v.PaddingY
 }
 
 // Name returns the name of the view.
@@ -224,7 +230,7 @@ func (v *View) setRune(x, y int, ch rune, fgColor, bgColor Attribute) error {
 		ch = ' '
 	}
 
-	tcellSetCell(v.x0+x+1, v.y0+y+1, ch, fgColor, bgColor, v.outMode)
+	tcellSetCell(v.x0+x+1+v.PaddingX, v.y0+y+1+v.PaddingY, ch, fgColor, bgColor, v.outMode)
 
 	return nil
 }
