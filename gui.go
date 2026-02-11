@@ -794,11 +794,19 @@ func (g *Gui) drawFrameCorners(v *View, fgColor, bgColor Attribute) error {
 }
 
 // drawTitle draws the title of the view.
+//
+// If fgColor and/or bgColor ARE ColorDefault and the title contains ANSI color codes, then the
+// text is colored according to those embedded ANSI colors.
+//
+// If fgColor and/or bgColor are NOT ColorDefault, then the title string will use those colors
+// and thus OVERRIDE ANSI color codes embedded within the title string.
 func (g *Gui) drawTitle(v *View, fgColor, bgColor Attribute) error {
 	if v.y0 < 0 || v.y0 >= g.maxY {
 		return nil
 	}
 
+	// Rebuild the title as []cell by parsing the foreground/background ANSI color codes
+	var cells []cell
 	for i, ch := range v.Title {
 		x := v.x0 + i + 2
 		if x < 0 {
@@ -806,14 +814,41 @@ func (g *Gui) drawTitle(v *View, fgColor, bgColor Attribute) error {
 		} else if x > v.x1-2 || x >= g.maxX {
 			break
 		}
-		if err := g.SetRune(x, v.y0, ch, fgColor, bgColor); err != nil {
-			return err
+		c := v.parseInput(ch)
+		if c == nil {
+			continue
+		}
+		cells = append(cells, c...)
+	}
+
+	for i, c := range cells {
+		x := v.x0 + i + 2
+
+		if fgColor == ColorDefault && bgColor == ColorDefault {
+			if err := g.SetRune(x, v.y0, c.chr, c.fgColor, c.bgColor); err != nil {
+				return err
+			}
+		} else if fgColor == ColorDefault && bgColor != ColorDefault {
+			if err := g.SetRune(x, v.y0, c.chr, c.fgColor, bgColor); err != nil {
+				return err
+			}
+		} else {
+			if err := g.SetRune(x, v.y0, c.chr, fgColor, c.bgColor); err != nil {
+				return err
+			}
 		}
 	}
+
 	return nil
 }
 
 // drawSubtitle draws the subtitle of the view.
+//
+// If fgColor and/or bgColor ARE ColorDefault and the subtitle contains ANSI color codes, then the
+// text is colored according to those embedded ANSI colors.
+//
+// If fgColor and/or bgColor are NOT ColorDefault, then the subtitle string will use those colors
+// and thus override ANSI color codes embedded within the subtitle string.
 func (g *Gui) drawSubtitle(v *View, fgColor, bgColor Attribute) error {
 	if v.y0 < 0 || v.y0 >= g.maxY {
 		return nil
@@ -823,15 +858,45 @@ func (g *Gui) drawSubtitle(v *View, fgColor, bgColor Attribute) error {
 	if start < v.x0 {
 		return nil
 	}
+
+	// Rebuild the subtitle as []cell by parsing the foreground/background ANSI color codes
+	var cells []cell
 	for i, ch := range v.Subtitle {
 		x := start + i
 		if x >= v.x1 {
 			break
 		}
-		if err := g.SetRune(x, v.y0, ch, fgColor, bgColor); err != nil {
-			return err
+		c := v.parseInput(ch)
+		if c == nil {
+			continue
+		}
+		cells = append(cells, c...)
+	}
+
+	// Update the start location for the subtitle after parsing any ANSI color codes
+	start = v.x1 - 5 - len(cells)
+
+	for i, c := range cells {
+		x := start + i
+		if x >= v.x1 {
+			break
+		}
+
+		if fgColor == ColorDefault && bgColor == ColorDefault {
+			if err := g.SetRune(x, v.y0, c.chr, c.fgColor, c.bgColor); err != nil {
+				return err
+			}
+		} else if fgColor == ColorDefault && bgColor != ColorDefault {
+			if err := g.SetRune(x, v.y0, c.chr, c.fgColor, bgColor); err != nil {
+				return err
+			}
+		} else {
+			if err := g.SetRune(x, v.y0, c.chr, fgColor, c.bgColor); err != nil {
+				return err
+			}
 		}
 	}
+
 	return nil
 }
 
