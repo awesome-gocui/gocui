@@ -13,7 +13,9 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-const delta = 0.2
+type demoWidgets struct {
+	delta float64
+}
 
 type HelpWidget struct {
 	name string
@@ -112,26 +114,28 @@ func (w *ButtonWidget) Layout(g *gocui.Gui) error {
 	return nil
 }
 
-func main() {
+func mainWidgets() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
+	d := &demoWidgets{delta: 0.2}
+
 	g.Highlight = true
 	g.SelFrameColor = gocui.ColorRed
 
 	help := NewHelpWidget("help", 1, 1, helpText)
 	status := NewStatusbarWidget("status", 1, 7, 50)
-	butdown := NewButtonWidget("butdown", 52, 7, "DOWN", statusDown(status))
-	butup := NewButtonWidget("butup", 58, 7, "UP", statusUp(status))
+	butdown := NewButtonWidget("butdown", 52, 7, "DOWN", d.statusDown(status))
+	butup := NewButtonWidget("butup", 58, 7, "UP", d.statusUp(status))
 	g.SetManager(help, status, butdown, butup)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
-	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, toggleButton); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyTab, gocui.ModNone, d.toggleButton); err != nil {
 		log.Panicln(err)
 	}
 
@@ -140,11 +144,11 @@ func main() {
 	}
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoWidgets) quit(*gocui.Gui, *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func toggleButton(g *gocui.Gui, v *gocui.View) error {
+func (d *demoWidgets) toggleButton(g *gocui.Gui, v *gocui.View) error {
 	nextview := "butdown"
 	if v != nil && v.Name() == "butdown" {
 		nextview = "butup"
@@ -153,19 +157,19 @@ func toggleButton(g *gocui.Gui, v *gocui.View) error {
 	return err
 }
 
-func statusUp(status *StatusbarWidget) func(g *gocui.Gui, v *gocui.View) error {
+func (d *demoWidgets) statusUp(status *StatusbarWidget) func(g *gocui.Gui, v *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
-		return statusSet(status, delta)
+		return d.statusSet(status, d.delta)
 	}
 }
 
-func statusDown(status *StatusbarWidget) func(g *gocui.Gui, v *gocui.View) error {
+func (d *demoWidgets) statusDown(status *StatusbarWidget) func(g *gocui.Gui, v *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
-		return statusSet(status, -delta)
+		return d.statusSet(status, -d.delta)
 	}
 }
 
-func statusSet(sw *StatusbarWidget, inc float64) error {
+func (d *demoWidgets) statusSet(sw *StatusbarWidget, inc float64) error {
 	val := sw.Val() + inc
 	if val < 0 || val > 1 {
 		return nil

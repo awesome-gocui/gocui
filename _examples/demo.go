@@ -15,7 +15,9 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func nextView(g *gocui.Gui, v *gocui.View) error {
+type demo struct{}
+
+func (d *demo) nextView(g *gocui.Gui, v *gocui.View) error {
 	if v == nil || v.Name() == "side" {
 		_, err := g.SetCurrentView("main")
 		return err
@@ -24,7 +26,7 @@ func nextView(g *gocui.Gui, v *gocui.View) error {
 	return err
 }
 
-func cursorDown(g *gocui.Gui, v *gocui.View) error {
+func (d *demo) cursorDown(g *gocui.Gui, v *gocui.View) error {
 	if v != nil {
 		cx, cy := v.Cursor()
 		if err := v.SetCursor(cx, cy+1); err != nil {
@@ -37,7 +39,7 @@ func cursorDown(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func cursorUp(g *gocui.Gui, v *gocui.View) error {
+func (d *demo) cursorUp(g *gocui.Gui, v *gocui.View) error {
 	if v != nil {
 		ox, oy := v.Origin()
 		cx, cy := v.Cursor()
@@ -50,7 +52,7 @@ func cursorUp(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func getLine(g *gocui.Gui, v *gocui.View) error {
+func (d *demo) getLine(g *gocui.Gui, v *gocui.View) error {
 	var l string
 	var err error
 
@@ -72,7 +74,7 @@ func getLine(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func delMsg(g *gocui.Gui, v *gocui.View) error {
+func (d *demo) delMsg(g *gocui.Gui, v *gocui.View) error {
 	if err := g.DeleteView("msg"); err != nil {
 		return err
 	}
@@ -82,43 +84,43 @@ func delMsg(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demo) quit(*gocui.Gui, *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func keybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("side", gocui.KeyCtrlSpace, gocui.ModNone, nextView); err != nil {
+func (d *demo) keybindings(g *gocui.Gui) error {
+	if err := g.SetKeybinding("side", gocui.KeyCtrlSpace, gocui.ModNone, d.nextView); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("main", gocui.KeyCtrlSpace, gocui.ModNone, nextView); err != nil {
+	if err := g.SetKeybinding("main", gocui.KeyCtrlSpace, gocui.ModNone, d.nextView); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("side", gocui.KeyArrowDown, gocui.ModNone, cursorDown); err != nil {
+	if err := g.SetKeybinding("side", gocui.KeyArrowDown, gocui.ModNone, d.cursorDown); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("side", gocui.KeyArrowUp, gocui.ModNone, cursorUp); err != nil {
+	if err := g.SetKeybinding("side", gocui.KeyArrowUp, gocui.ModNone, d.cursorUp); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("side", gocui.KeyEnter, gocui.ModNone, getLine); err != nil {
+	if err := g.SetKeybinding("side", gocui.KeyEnter, gocui.ModNone, d.getLine); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("msg", gocui.KeyEnter, gocui.ModNone, delMsg); err != nil {
+	if err := g.SetKeybinding("msg", gocui.KeyEnter, gocui.ModNone, d.delMsg); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("main", gocui.KeyCtrlS, gocui.ModNone, saveMain); err != nil {
+	if err := g.SetKeybinding("main", gocui.KeyCtrlS, gocui.ModNone, d.saveMain); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("main", gocui.KeyCtrlW, gocui.ModNone, saveVisualMain); err != nil {
+	if err := g.SetKeybinding("main", gocui.KeyCtrlW, gocui.ModNone, d.saveVisualMain); err != nil {
 		return err
 	}
 	return nil
 }
 
-func saveMain(g *gocui.Gui, v *gocui.View) error {
+func (d *demo) saveMain(g *gocui.Gui, v *gocui.View) error {
 	f, err := ioutil.TempFile("", "gocui_demo_")
 	if err != nil {
 		return err
@@ -144,7 +146,7 @@ func saveMain(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func saveVisualMain(g *gocui.Gui, v *gocui.View) error {
+func (d *demo) saveVisualMain(g *gocui.Gui, v *gocui.View) error {
 	f, err := ioutil.TempFile("", "gocui_demo_")
 	if err != nil {
 		return err
@@ -158,7 +160,7 @@ func saveVisualMain(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demo) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	if v, err := g.SetView("side", -1, -1, 30, maxY, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -191,18 +193,18 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func main() {
+func mainDemo() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
-
 	g.Cursor = true
 
-	g.SetManagerFunc(layout)
+	d := &demo{}
+	g.SetManagerFunc(d.layout)
 
-	if err := keybindings(g); err != nil {
+	if err := d.keybindings(g); err != nil {
 		log.Panicln(err)
 	}
 

@@ -12,7 +12,12 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
-func main() {
+type demoMouse struct {
+	initialMouseX, initialMouseY, xOffset, yOffset int
+	globalMouseDown, msgMouseDown, movingMsg       bool
+}
+
+func mainMouse() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
@@ -22,9 +27,10 @@ func main() {
 	g.Cursor = false
 	g.Mouse = true
 
-	g.SetManagerFunc(layout)
+	d := demoMouse{}
+	g.SetManagerFunc(d.layout)
 
-	if err := keybindings(g); err != nil {
+	if err := d.keybindings(g); err != nil {
 		log.Panicln(err)
 	}
 
@@ -33,13 +39,10 @@ func main() {
 	}
 }
 
-var initialMouseX, initialMouseY, xOffset, yOffset int
-var globalMouseDown, msgMouseDown, movingMsg bool
-
-func layout(g *gocui.Gui) error {
+func (d *demoMouse) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
-	if _, err := g.View("msg"); msgMouseDown && err == nil {
-		moveMsg(g)
+	if _, err := g.View("msg"); d.msgMouseDown && err == nil {
+		d.moveMsg(g)
 	}
 	if v, err := g.SetView("global", -1, -1, maxX, maxY, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -69,36 +72,36 @@ func layout(g *gocui.Gui) error {
 		v.SelFgColor = gocui.ColorBlack
 		fmt.Fprintln(v, "Button 2 - line 1")
 	}
-	updateHighlightedView(g)
+	d.updateHighlightedView(g)
 	return nil
 }
 
-func keybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+func (d *demoMouse) keybindings(g *gocui.Gui) error {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		return err
 	}
 	for _, n := range []string{"but1", "but2"} {
-		if err := g.SetKeybinding(n, gocui.MouseLeft, gocui.ModNone, showMsg); err != nil {
+		if err := g.SetKeybinding(n, gocui.MouseLeft, gocui.ModNone, d.showMsg); err != nil {
 			return err
 		}
 	}
-	if err := g.SetKeybinding("", gocui.MouseRelease, gocui.ModNone, mouseUp); err != nil {
+	if err := g.SetKeybinding("", gocui.MouseRelease, gocui.ModNone, d.mouseUp); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.MouseLeft, gocui.ModNone, globalDown); err != nil {
+	if err := g.SetKeybinding("", gocui.MouseLeft, gocui.ModNone, d.globalDown); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("msg", gocui.MouseLeft, gocui.ModNone, msgDown); err != nil {
+	if err := g.SetKeybinding("msg", gocui.MouseLeft, gocui.ModNone, d.msgDown); err != nil {
 		return err
 	}
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoMouse) quit(*gocui.Gui, *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func showMsg(g *gocui.Gui, v *gocui.View) error {
+func (d *demoMouse) showMsg(g *gocui.Gui, v *gocui.View) error {
 	var l string
 	var err error
 
@@ -121,7 +124,7 @@ func showMsg(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func updateHighlightedView(g *gocui.Gui) {
+func (d *demoMouse) updateHighlightedView(g *gocui.Gui) {
 	mx, my := g.MousePosition()
 	for _, view := range g.Views() {
 		view.Highlight = false
@@ -131,32 +134,32 @@ func updateHighlightedView(g *gocui.Gui) {
 	}
 }
 
-func moveMsg(g *gocui.Gui) {
+func (d *demoMouse) moveMsg(g *gocui.Gui) {
 	mx, my := g.MousePosition()
-	if !movingMsg && (mx != initialMouseX || my != initialMouseY) {
-		movingMsg = true
+	if !d.movingMsg && (mx != d.initialMouseX || my != d.initialMouseY) {
+		d.movingMsg = true
 	}
-	g.SetView("msg", mx-xOffset, my-yOffset, mx-xOffset+20, my-yOffset+2, 0)
+	g.SetView("msg", mx-d.xOffset, my-d.yOffset, mx-d.xOffset+20, my-d.yOffset+2, 0)
 }
 
-func msgDown(g *gocui.Gui, v *gocui.View) error {
-	initialMouseX, initialMouseY = g.MousePosition()
+func (d *demoMouse) msgDown(g *gocui.Gui, v *gocui.View) error {
+	d.initialMouseX, d.initialMouseY = g.MousePosition()
 	if vx, vy, _, _, err := g.ViewPosition("msg"); err == nil {
-		xOffset = initialMouseX - vx
-		yOffset = initialMouseY - vy
-		msgMouseDown = true
+		d.xOffset = d.initialMouseX - vx
+		d.yOffset = d.initialMouseY - vy
+		d.msgMouseDown = true
 	}
 	return nil
 }
 
-func globalDown(g *gocui.Gui, v *gocui.View) error {
+func (d *demoMouse) globalDown(g *gocui.Gui, v *gocui.View) error {
 	mx, my := g.MousePosition()
 	if vx0, vy0, vx1, vy1, err := g.ViewPosition("msg"); err == nil {
 		if mx >= vx0 && mx <= vx1 && my >= vy0 && my <= vy1 {
-			return msgDown(g, v)
+			return d.msgDown(g, v)
 		}
 	}
-	globalMouseDown = true
+	d.globalMouseDown = true
 	maxX, _ := g.Size()
 	msg := fmt.Sprintf("Mouse down at: %d,%d", mx, my)
 	x := mx - len(msg)/2
@@ -174,18 +177,18 @@ func globalDown(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func mouseUp(g *gocui.Gui, v *gocui.View) error {
-	if msgMouseDown {
-		msgMouseDown = false
-		if movingMsg {
-			movingMsg = false
+func (d *demoMouse) mouseUp(g *gocui.Gui, v *gocui.View) error {
+	if d.msgMouseDown {
+		d.msgMouseDown = false
+		if d.movingMsg {
+			d.movingMsg = false
 			return nil
 		} else {
-			g.DeleteView("msg")
+			_ = g.DeleteView("msg")
 		}
-	} else if globalMouseDown {
-		globalMouseDown = false
-		g.DeleteView("globalDown")
+	} else if d.globalMouseDown {
+		d.globalMouseDown = false
+		_ = g.DeleteView("globalDown")
 	}
 	return nil
 }
