@@ -59,7 +59,7 @@ online.
 
 ## Example
 
-See the [\_example](./_example/) folder for more examples
+See the [\_examples](./_examples/) folder for more examples
 
 ```go
 package main
