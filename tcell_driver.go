@@ -29,7 +29,11 @@ func Suspend() {
 
 // Resume re-initializes the tcell screen, intended to be used after "Suspend" has been called
 func Resume() error {
-	return tcellInit()
+    if e := tcellInit(); e != nil {
+        return e
+    }
+    screen.EnableMouse()
+    return nil
 }
 
 // tcellInitSimulation creates a tcell simulated screen for testing
