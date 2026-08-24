@@ -7,7 +7,6 @@ package gocui
 import (
 	"errors"
 	"fmt"
-	"runtime"
 )
 
 // OutputMode represents an output mode, which determines how colors
@@ -134,15 +133,7 @@ func NewGui(mode OutputMode, supportOverlaps bool) (*Gui, error) {
 	g.gEvents = make(chan gocuiEvent, 20)
 	g.userEvents = make(chan userEvent, 20)
 
-	var err error
-	if runtime.GOOS != "windows" && mode != OutputSimulator {
-		g.maxX, g.maxY, err = g.getTermWindowSize()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		g.maxX, g.maxY = screen.Size()
-	}
+	g.maxX, g.maxY = screen.Size()
 
 	g.mouseX, g.mouseY = -1, -1
 	g.BgColor, g.FgColor, g.FrameColor = ColorDefault, ColorDefault, ColorDefault
@@ -167,6 +158,20 @@ func (g *Gui) Close() {
 // Size returns the terminal's size.
 func (g *Gui) Size() (x, y int) {
 	return g.maxX, g.maxY
+}
+
+// SetSize requests the terminal to be resized to x columns and y rows.
+//
+// Not every terminal honours the request: most terminal emulators do not
+// support application-initiated resizing, and when they do, the original size
+// is not restored on exit. The new size is picked up on the next redraw, so
+// Size keeps reporting the previous size until then.
+//
+// It is most useful on the js/wasm target, where the hosting page decides how
+// many cells fit into the browser window and can call SetSize whenever the
+// window is resized.
+func (g *Gui) SetSize(x, y int) {
+	screen.SetSize(x, y)
 }
 
 // MousePosition returns the last position of the mouse.
