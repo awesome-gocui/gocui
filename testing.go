@@ -44,7 +44,6 @@ func (g *Gui) GetTestingScreen() TestingScreen {
 //
 // cleanup := testingScreen.StartGui()
 // defer cleanup()
-//
 func (t *TestingScreen) StartGui() func() {
 	t.gui.testNotify = make(chan struct{})
 	go func() {
