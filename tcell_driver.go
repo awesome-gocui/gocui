@@ -98,10 +98,11 @@ func setTcellFontEffectStyle(st tcell.Style, attr Attribute) tcell.Style {
 type gocuiEventType uint8
 
 // gocuiEvent represents events like a keys, mouse actions, or window resize.
-//  The 'Mod', 'Key' and 'Ch' fields are valid if 'Type' is 'eventKey'.
-//  The 'MouseX' and 'MouseY' fields are valid if 'Type' is 'eventMouse'.
-//  The 'Width' and 'Height' fields are valid if 'Type' is 'eventResize'.
-//  The 'Err' field is valid if 'Type' is 'eventError'.
+//
+//	The 'Mod', 'Key' and 'Ch' fields are valid if 'Type' is 'eventKey'.
+//	The 'MouseX' and 'MouseY' fields are valid if 'Type' is 'eventMouse'.
+//	The 'Width' and 'Height' fields are valid if 'Type' is 'eventResize'.
+//	The 'Err' field is valid if 'Type' is 'eventError'.
 type gocuiEvent struct {
 	Type   gocuiEventType
 	Mod    Modifier

@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-versions: ["1.13", "1.15", "1.16"]
+        go-versions: ["1.23", "1.24", "1.25"]
     name: GoLang ${{ matrix.go-versions }}
     steps:
       - uses: actions/checkout@v2
@@ -34,3 +34,9 @@ jobs:
           do
             go build $file
           done
+
+      - name: Build js/wasm
+        run: GOOS=js GOARCH=wasm go build ./...
+
+      - name: Test
+        run: go test ./...
