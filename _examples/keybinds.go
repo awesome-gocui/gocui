@@ -2,7 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
+
+	"syscall"
 
 	"github.com/awesome-gocui/gocui"
 )
@@ -10,7 +13,7 @@ import (
 // layout generates the view
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
-	if v, err := g.SetView("hello", maxX/2-7, maxY/2, maxX/2+7, maxY/2+2, 0); err != nil {
+	if v, err := g.SetView("hello", maxX/2-15, maxY/2-7, maxX/2+15, maxY/2+7, 0); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
@@ -28,6 +31,15 @@ func layout(g *gocui.Gui) error {
 // quit stops the gui
 func quit(_ *gocui.Gui, _ *gocui.View) error {
 	return gocui.ErrQuit
+}
+
+// handle ctrl+z
+func handle_ctrl_z(g *gocui.Gui, v *gocui.View) error {
+	gocui.Suspend()
+	fmt.Fprintf(v, "\ngot ctrl+z")
+	syscall.Kill(syscall.Getpid(), syscall.SIGSTOP)
+	gocui.Resume()
+	return nil
 }
 
 func main() {
@@ -51,6 +63,12 @@ func main() {
 	// The MustParse can panic, but only returns 2 values instead of 3
 	keyForced, modForced := gocui.MustParse("q")
 	if err := g.SetKeybinding("", keyForced, modForced, quit); err != nil {
+		log.Panicln(err)
+	}
+
+	// setup ctrl+z
+	keyForced, modForced = gocui.MustParse("ctrl+z")
+	if err := g.SetKeybinding("", keyForced, modForced, handle_ctrl_z); err != nil {
 		log.Panicln(err)
 	}
 
