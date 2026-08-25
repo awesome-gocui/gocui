@@ -13,6 +13,8 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
+type demoFlowLayout struct{}
+
 type Label struct {
 	name string
 	w, h int
@@ -48,7 +50,7 @@ func (w *Label) Layout(g *gocui.Gui) error {
 	return nil
 }
 
-func flowLayout(g *gocui.Gui) error {
+func (d *demoFlowLayout) flowLayout(g *gocui.Gui) error {
 	views := g.Views()
 	x := 0
 	for _, v := range views {
@@ -62,22 +64,24 @@ func flowLayout(g *gocui.Gui) error {
 	return nil
 }
 
-func main() {
+func mainFlowLayout() {
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
 
+	d := &demoFlowLayout{}
+
 	l1 := NewLabel("l1", "This")
 	l2 := NewLabel("l2", "is")
 	l3 := NewLabel("l3", "a")
 	l4 := NewLabel("l4", "flow\nlayout")
 	l5 := NewLabel("l5", "!")
-	fl := gocui.ManagerFunc(flowLayout)
+	fl := gocui.ManagerFunc(d.flowLayout)
 	g.SetManager(l1, l2, l3, l4, l5, fl)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
 
@@ -86,6 +90,6 @@ func main() {
 	}
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoFlowLayout) quit(*gocui.Gui, *gocui.View) error {
 	return gocui.ErrQuit
 }

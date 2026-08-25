@@ -14,9 +14,11 @@ import (
 	colorful "github.com/lucasb-eyer/go-colorful"
 )
 
-var dark = false
+type demoColorsTrue struct {
+	dark bool
+}
 
-func main() {
+func mainColorsTrue() {
 	os.Setenv("COLORTERM", "truecolor")
 	g, err := gocui.NewGui(gocui.OutputTrue, true)
 
@@ -25,19 +27,20 @@ func main() {
 	}
 	defer g.Close()
 
-	g.SetManagerFunc(layout)
+	d := &demoColorsTrue{dark: false}
+	g.SetManagerFunc(d.layout)
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, d.quit); err != nil {
 		log.Panicln(err)
 	}
 
 	if err := g.SetKeybinding("", gocui.KeyCtrlR, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if dark {
-			dark = false
+		if d.dark {
+			d.dark = false
 		} else {
-			dark = true
+			d.dark = true
 		}
-		displayHsv(v)
+		d.displayHsv(v)
 
 		return nil
 	}); err != nil {
@@ -49,7 +52,7 @@ func main() {
 	}
 }
 
-func layout(g *gocui.Gui) error {
+func (d *demoColorsTrue) layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 	rows := 33
 	cols := 182
@@ -66,7 +69,7 @@ func layout(g *gocui.Gui) error {
 		}
 
 		v.FrameColor = gocui.GetColor("#FFAA55")
-		displayHsv(v)
+		d.displayHsv(v)
 
 		if _, err := g.SetCurrentView("colors"); err != nil {
 			return err
@@ -75,15 +78,15 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
-func displayHsv(v *gocui.View) {
+func (d *demoColorsTrue) displayHsv(v *gocui.View) {
 	v.Clear()
 	str := ""
 	// HSV color space (lines are value or saturation)
 	for i := 50; i > 0; i -= 2 {
 		// Hue
 		for j := 0; j < 360; j += 2 {
-			ir, ig, ib := hsv(j, i-1)
-			ir2, ig2, ib2 := hsv(j, i)
+			ir, ig, ib := d.hsv(j, i-1)
+			ir2, ig2, ib2 := d.hsv(j, i)
 			str += fmt.Sprintf("\x1b[48;2;%d;%d;%dm\x1b[38;2;%d;%d;%dm▀\x1b[0m", ir, ig, ib, ir2, ig2, ib2)
 		}
 		str += "\n"
@@ -96,8 +99,8 @@ func displayHsv(v *gocui.View) {
 	fmt.Fprint(v, "Example should enable true color, but if it doesn't work run this command: \x1b[0mexport COLORTERM=truecolor")
 }
 
-func hsv(hue, sv int) (uint32, uint32, uint32) {
-	if !dark {
+func (d *demoColorsTrue) hsv(hue, sv int) (uint32, uint32, uint32) {
+	if !d.dark {
 		ir, ig, ib, _ := colorful.Hsv(float64(hue), float64(sv)/50, float64(1)).RGBA()
 		return ir >> 8, ig >> 8, ib >> 8
 	}
@@ -105,6 +108,6 @@ func hsv(hue, sv int) (uint32, uint32, uint32) {
 	return ir >> 8, ig >> 8, ib >> 8
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
+func (d *demoColorsTrue) quit(*gocui.Gui, *gocui.View) error {
 	return gocui.ErrQuit
 }
